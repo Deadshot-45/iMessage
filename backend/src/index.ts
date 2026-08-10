@@ -1,4 +1,6 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, type NextFunction } from "express";
+import fs from "fs";
+import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 import connection from "./lib/db.js";
@@ -32,6 +34,17 @@ app.get("/", (req: Request, res: Response) => {
 app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "OK", success: true });
 });
+
+const publicDir = path.join(process.cwd(), "public");
+
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  app.get("/{*any}", (req: Request, res: Response, next: NextFunction) => {
+    res.sendFile(path.join(publicDir, "index.html"), (err) => next(err));
+  });
+} else {
+  console.log("Public directory not found");
+}
 
 app.listen(PORT, async () => {
   await connection();
