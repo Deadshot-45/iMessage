@@ -46,7 +46,12 @@ if (fs.existsSync(publicDir)) {
   console.log("Public directory not found");
 }
 
+import { startCronJob } from "./lib/cron.js";
+
 app.listen(PORT, async () => {
   await connection();
   console.log(`Server is running on port ${PORT}`);
+  if (process.env.NODE_ENV === "production") {
+    startCronJob();
+  }
 });
