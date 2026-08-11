@@ -1,20 +1,19 @@
-import cron from "node-cron";
+import { CronJob } from "cron";
+import http from "node:http";
+import https from "node:https";
+// every 14 minutes send a GET request to the health endpoint
+const job = new CronJob("*/14 * * * *", function () {
+  const base = process.env.FRONTEND_URL;
+  if (!base) return;
+  const url = new URL("/health", base).href;
+  const client = url.startsWith("https:") ? https : http;
 
-export const startCronJob = () => {
-  // Runs every 14 minutes
-  cron.schedule("*/14 * * * *", async () => {
-    try {
-      console.log("Sending self-ping to keep server awake...");
-      
-      // Use BACKEND_URL from env or default to localhost
-      const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
+  client
+    .get(url, (res) => {
+      if (res.statusCode === 200) console.log("GET request sent successfully");
+      else console.log("GET request failed", res.statusCode);
+    })
+    .on("error", (e) => console.error("Error while sending request", e));
+});
 
-      const response = await fetch(`${backendUrl}/health`);
-      const data = await response.json();
-
-      console.log("Self-ping response:", data);
-    } catch (error) {
-      console.error("Error running cron job self-ping:", error);
-    }
-  });
-};
+export default job;
