@@ -8,6 +8,8 @@ import { clerkMiddleware } from "@clerk/express";
 import job from "./lib/cron.js";
 import clerkWebhook from "./weebhooks/clerk.webhooks.js";
 import authRoutes from "./routes/auth.route.js";
+import userRoutes from "./routes/user.route.js";
+import messageRoutes from "./routes/message.route.js";
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +43,10 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 app.use("/api/auth", authRoutes)
+app.use("/api/message", messageRoutes);
+app.use("/api/user", userRoutes);
+
+
 
 const publicDir = path.join(process.cwd(), "public");
 

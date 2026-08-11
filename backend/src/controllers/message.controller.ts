@@ -1,0 +1,186 @@
+import { Request, Response } from "express";
+import Message from "../models/message.model.js";
+import { hasImagekitConfig, uploadChatMedia } from "../lib/imagekit.js";
+
+const getConversations = async (req: Request, res: Response) => {
+  try {
+    const loggedInUserId = req.user?._id;
+
+    if (!loggedInUserId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "Unauthorized",
+      });
+    }
+
+    const conversations = await Message.aggregate([
+      {
+        $match: {
+          $or: [{ senderId: loggedInUserId }, { receiverId: loggedInUserId }],
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $cond: {
+              if: { $eq: ["$senderId", loggedInUserId] },
+              then: "$receiverId",
+              else: "$senderId",
+            },
+          },
+          latestMessage: {
+            $max: "$createdAt",
+          },
+        },
+      },
+      {
+        $sort: {
+          latestMessage: -1,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: { $first: "$user" },
+        },
+      },
+      {
+        $project: {
+          clerkId: 0,
+          password: 0,
+          updatedAt: 0,
+          createdAt: 0,
+          __v: 0,
+        },
+      },
+    ]);
+    res.status(200).json({
+      success: true,
+      message: "Conversations fetched successfully",
+      status: 200,
+      conversations,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const getMessages = async (req: Request, res: Response) => {
+  try {
+    const receiverId = req.params.id; // userToChat
+    const senderId = req.user?._id; // loggedinUser
+
+    if (!receiverId || !senderId) {
+      return res.status(401).json({
+        success: false,
+        status: 401,
+        message: "Unauthorized",
+      });
+    }
+
+    const conversations = await Message.find({
+      $or: [
+        { senderId, receiverId },
+        { senderId, receiverId },
+      ],
+    })
+      .sort({ createdAt: 1 })
+      .select("-clerkId -password -updatedAt -__v");
+
+    res.status(200).json({
+      success: true,
+      message: "Conversation messages fetched successfully",
+      status: 200,
+      conversations,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const sendMessage = async (req: Request, res: Response) => {
+  try {
+    const { message } = req.body;
+    const receiverId = req.params.id;
+    const senderId = req.user?._id;
+    const file = req.file;
+    let mediaUrl = "";
+    let mediaType: "image" | "video" | "" = "";
+    let mediathumbnailUrl = "";
+
+    if (!message || !receiverId || !senderId) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: "All fields are required",
+      });
+    }
+
+    if (file) {
+      if (!hasImagekitConfig) {
+        return res.status(500).json({
+          success: false,
+          status: 503,
+          message: "Storage Service is not available, try again later.",
+        });
+      }
+      // here we upload media file
+      const url = await uploadChatMedia(file);
+      if(!url){
+        return res.status(503).json({
+          success: false,
+          status: 503,
+          message: "Media upload failed, try again later.",
+        });
+      }
+      
+      mediaUrl = url?.url ?? "";
+      if(file.mimetype.startsWith("image/")){
+        mediaType = "image";
+      }else if(file.mimetype.startsWith("video/")){
+        mediaType = "video";
+        mediathumbnailUrl = url?.thumbnailUrl ?? "";
+      }
+    }
+
+    const newMessage = new Message({
+      senderId,
+      receiverId,
+      message,
+      mediaUrl,
+      mediaType,
+      thumbnailUrl: mediathumbnailUrl
+    });
+    await newMessage.save();
+
+    // realtime Socket.Io
+
+
+    res.status(201).json({
+      success: true,
+      message: "Message sent successfully",
+      status: 201,
+      newMessage,
+    });
+  } catch (error) {}
+};
+
+export { getConversations, getMessages, sendMessage };

@@ -15,6 +15,18 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  mediaUrl: {
+    type: String,
+    default: "",
+  },
+  mediaType: {
+    type: String,
+    enum: ["image", "video"],
+  },
+  thumbnailUrl: {
+    type: String,
+    default: "",
+  },
 }, {timestamps:true});
 
 const Message = mongoose.model("Message", messageSchema);
