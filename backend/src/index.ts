@@ -31,9 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(clerkMiddleware());
 
 // Routes
-app.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Chat App Backend API is running with TypeScript!" });
-});
+//app.get("/", (req: Request, res: Response) => {
+//  res.json({ message: "Chat App Backend API is running with TypeScript!" });
+//});
 
 app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "OK", success: true });
