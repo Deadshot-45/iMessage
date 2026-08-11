@@ -7,6 +7,7 @@ import connection from "./lib/db.js";
 import { clerkMiddleware } from "@clerk/express";
 import job from "./lib/cron.js";
 import clerkWebhook from "./weebhooks/clerk.webhooks.js";
+import authRoutes from "./routes/auth.route.js";
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +39,8 @@ app.use(clerkMiddleware());
 app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "OK", success: true });
 });
+
+app.use("/api/auth", authRoutes)
 
 const publicDir = path.join(process.cwd(), "public");
 
