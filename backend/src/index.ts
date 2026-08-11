@@ -5,6 +5,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connection from "./lib/db.js";
 import { clerkMiddleware } from "@clerk/express";
+import job from "./lib/cron.js";
+import clerkWebhook from "./weebhooks/clerk.webhooks.js";
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +14,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL;
+
+app.use("/api/webhooks/clerk", express.raw({type: "application/json"}), clerkWebhook);
 
 // Middleware
 app.use(
@@ -46,7 +50,7 @@ if (fs.existsSync(publicDir)) {
   console.log("Public directory not found");
 }
 
-import job from "./lib/cron.js";
+// Start the server
 
 app.listen(PORT, async () => {
   await connection();
