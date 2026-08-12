@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 import { ClerkProvider } from "@clerk/react";
+import { ThemeProvider } from "./components/provider/theme-provider.tsx";
+import { WallpaperProvider } from "./components/provider/wallpaper-provider.tsx";
+import { AccentProvider } from "./components/provider/accent-provider.tsx";
+import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -47,9 +51,17 @@ if (!publishableKey) {
 } else {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <ClerkProvider publishableKey={publishableKey}>
-        <App />
-      </ClerkProvider>
+      <ErrorBoundary>
+        <ClerkProvider publishableKey={publishableKey}>
+          <ThemeProvider>
+            <WallpaperProvider>
+              <AccentProvider>
+                <App />
+              </AccentProvider>
+            </WallpaperProvider>
+          </ThemeProvider>
+        </ClerkProvider>
+      </ErrorBoundary>
     </StrictMode>,
   );
 }

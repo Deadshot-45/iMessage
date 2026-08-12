@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from "react";
 import { ChevronLeft, Info, Phone, Video, MessageSquare, Plus, Smile, Send } from "lucide-react";
 import type { Conversation } from "../types";
+import { Input } from "./ui/input";
 
 
-interface ChatPaneProps {
+interface ChatPanelProps {
   activeChat: Conversation | null;
   inputText: string;
   setInputText: (text: string) => void;
@@ -14,7 +15,7 @@ interface ChatPaneProps {
   setShowDetails: (show: boolean) => void;
 }
 
-export function ChatPane({
+export function ChatPanel({
   activeChat,
   inputText,
   setInputText,
@@ -23,7 +24,7 @@ export function ChatPane({
   onBack,
   showDetails,
   setShowDetails,
-}: ChatPaneProps) {
+}: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom of thread
@@ -65,13 +66,13 @@ export function ChatPane({
           <span style={{ fontSize: "15px", fontWeight: "500" }}>Back</span>
         </button>
 
-        <div className="chat-header-info" onClick={() => setShowDetails(!showDetails)}>
+        <div typeof="button" className="flex gap-2 items-center justify-center cursor-pointer" onClick={() => setShowDetails(!showDetails)}>
           <div className="chat-header-avatar" style={{ backgroundColor: activeChat.avatarColor }}>
             {initials}
           </div>
-          <div className="chat-header-name-details">
-            <span className="chat-header-name">{activeChat.name}</span>
-            <span className="chat-header-status">
+          <div className="flex flex-col items-start pt-2">
+            <span className="text-xs font-semibold">{activeChat.name}</span>
+            <span className="flex items-center text-[12px] text-muted-foreground">
               {activeChat.status}
               <Info size={11} style={{ marginLeft: "2px" }} />
             </span>
@@ -134,9 +135,9 @@ export function ChatPane({
         </button>
 
         <div className="input-container">
-          <input
+          <Input
             type="text"
-            className="chat-input"
+            className="chat-input border-none! bg-transparent! focus-visible:ring-0! h-auto!"
             placeholder="iMessage"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
