@@ -34,26 +34,36 @@ app.use(express.urlencoded({ extended: true }));
 // Clerk middleware
 app.use(clerkMiddleware());
 
-// Routes
-app.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Chat App Backend API is running with TypeScript!" });
-});
+// API Routes
 app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "OK", success: true });
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/user", userRoutes);
+app.get("/api", (req: Request, res: Response) => {
+  res.json({ message: "Chat App Backend API is running with TypeScript!" });
+});
 
+// Serve Frontend Static Assets in Production
+const frontendDist = path.join(process.cwd(), "..", "frontend", "dist");
 const publicDir = path.join(process.cwd(), "public");
 
-if (fs.existsSync(publicDir)) {
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get("*", (req: Request, res: Response) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+} else if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
-  app.get("/{*any}", (req: Request, res: Response, next: NextFunction) => {
-    res.sendFile(path.join(publicDir, "index.html"), (err) => next(err));
+  app.get("*", (req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, "index.html"));
   });
 } else {
-  console.log("Public directory not found");
+  console.log("Static files directory not found. Defaulting / to API welcome message.");
+  app.get("/", (req: Request, res: Response) => {
+    res.json({ message: "Chat App Backend API is running with TypeScript!" });
+  });
 }
 
 // Start the server and listen to the socket.io
