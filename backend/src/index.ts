@@ -1,8 +1,8 @@
+import "dotenv/config";
 import express, { Request, Response, type NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import cors from "cors";
-import dotenv from "dotenv";
 import connection from "./lib/db.js";
 import { clerkMiddleware } from "@clerk/express";
 import job from "./lib/cron.js";
@@ -10,11 +10,8 @@ import clerkWebhook from "./weebhooks/clerk.webhooks.js";
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
+import { app, server } from "./lib/socket.js";
 
-// Load environment variables
-dotenv.config();
-
-const app = express();
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL;
 
@@ -59,9 +56,9 @@ if (fs.existsSync(publicDir)) {
   console.log("Public directory not found");
 }
 
-// Start the server
+// Start the server and listen to the socket.io
 
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   await connection();
   console.log(`Server is running on port ${PORT}`);
   if (process.env.NODE_ENV === "production") {

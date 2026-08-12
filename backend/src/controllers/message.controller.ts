@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Message from "../models/message.model.js";
 import { hasImagekitConfig, uploadChatMedia } from "../lib/imagekit.js";
+import { getRecieverSocketId, io } from "../lib/socket.js";
 
 const getConversations = async (req: Request, res: Response) => {
   try {
@@ -144,18 +145,18 @@ const sendMessage = async (req: Request, res: Response) => {
       }
       // here we upload media file
       const url = await uploadChatMedia(file);
-      if(!url){
+      if (!url) {
         return res.status(503).json({
           success: false,
           status: 503,
           message: "Media upload failed, try again later.",
         });
       }
-      
+
       mediaUrl = url?.url ?? "";
-      if(file.mimetype.startsWith("image/")){
+      if (file.mimetype.startsWith("image/")) {
         mediaType = "image";
-      }else if(file.mimetype.startsWith("video/")){
+      } else if (file.mimetype.startsWith("video/")) {
         mediaType = "video";
         mediathumbnailUrl = url?.thumbnailUrl ?? "";
       }
@@ -167,13 +168,17 @@ const sendMessage = async (req: Request, res: Response) => {
       message,
       mediaUrl,
       mediaType,
-      thumbnailUrl: mediathumbnailUrl
+      thumbnailUrl: mediathumbnailUrl,
     });
     await newMessage.save();
 
     // realtime Socket.Io
-
-
+    const receiverSocketId = getRecieverSocketId(receiverId);
+    // send message only if the user is online
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("new:message", newMessage);
+    }
+    
     res.status(201).json({
       success: true,
       message: "Message sent successfully",
