@@ -20,16 +20,15 @@ export function ModeToggle({ className }: ModeToggleProps) {
   return (
     <div 
       className={cn(
-        "relative flex items-center p-1 rounded-full bg-black/6 dark:bg-white/8 backdrop-blur-md border border-black/3 dark:border-white/3 w-[72px] h-[30px] select-none",
+        "relative flex items-center p-1 rounded-full bg-black/6 dark:bg-white/8 backdrop-blur-md border border-black/3 dark:border-white/3 w-[58px] h-[30px] select-none",
         className
       )}
     >
-      {/* Sliding background pill */}
+      {/* Sliding background circle */}
       <div 
-        className="absolute top-1 bottom-1 left-1 rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
+        className="absolute left-0.5 w-[28px] h-[28px] rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
         style={{
-          width: "32px",
-          transform: `translateX(${activeIndex * 32}px)`,
+          transform: `translateX(${activeIndex * 24}px)`,
         }}
       />
 
