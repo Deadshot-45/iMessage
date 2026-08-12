@@ -1,9 +1,7 @@
 import { useAuth } from "@clerk/react";
 import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
-
-
-
+import { LoadingScreen } from "./SuspenseLoader";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn, isLoaded } = useAuth();
@@ -27,6 +25,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     isSignedIn,
   ]);
 
+  if (!isLoaded) return <LoadingScreen />;
   if (!isSignedIn) return <Navigate to="/auth" replace />;
   return children;
 };

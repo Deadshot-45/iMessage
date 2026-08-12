@@ -5,12 +5,14 @@ import { WallpaperToggle } from "./wallpaper-toggle";
 import { AccentToggle } from "./accent-toggle";
 import { useAuth } from "@clerk/react";
 import { Navigate } from "react-router-dom";
+import { LoadingScreen } from "./SuspenseLoader";
 
 export const APP_NAME = "iMessage";
 
 const LockScreen = () => {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
 
+  if (!isLoaded) return <LoadingScreen />;
   if (isSignedIn) return <Navigate to="/" replace />;
   return (
     <main className="imessage-window mx-auto flex w-full max-w-368 flex-1 flex-col overflow-hidden text-foreground">
