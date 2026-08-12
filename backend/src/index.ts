@@ -51,12 +51,12 @@ const publicDir = path.join(process.cwd(), "public");
 
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
-  app.get("*", (req: Request, res: Response) => {
+  app.get("/*splat", (req: Request, res: Response) => {
     res.sendFile(path.join(frontendDist, "index.html"));
   });
 } else if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
-  app.get("*", (req: Request, res: Response) => {
+  app.get("/*splat", (req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, "index.html"));
   });
 } else {
