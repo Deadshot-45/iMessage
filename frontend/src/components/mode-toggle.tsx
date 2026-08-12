@@ -20,16 +20,16 @@ export function ModeToggle({ className }: ModeToggleProps) {
   return (
     <div 
       className={cn(
-        "relative flex items-center p-0.5 rounded-full bg-black/6 dark:bg-white/8 backdrop-blur-md border border-black/3 dark:border-white/3 w-16 h-7 select-none",
+        "relative flex items-center p-1 rounded-full bg-black/6 dark:bg-white/8 backdrop-blur-md border border-black/3 dark:border-white/3 w-[72px] h-[30px] select-none",
         className
       )}
     >
       {/* Sliding background pill */}
       <div 
-        className="absolute top-0.5 bottom-0.5 left-0.5 rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
+        className="absolute top-1 bottom-1 left-1 rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
         style={{
           width: "32px",
-          transform: `translateX(${activeIndex * 34}px)`,
+          transform: `translateX(${activeIndex * 32}px)`,
         }}
       />
 
@@ -41,7 +41,7 @@ export function ModeToggle({ className }: ModeToggleProps) {
             key={opt.value}
             onClick={() => setTheme(opt.value)}
             className={cn(
-              "relative flex items-center justify-center w-8 h-6 rounded-full transition-colors focus-visible:outline-none cursor-pointer z-10",
+              "relative flex items-center justify-center w-[32px] h-[22px] rounded-full transition-colors focus-visible:outline-none cursor-pointer z-10",
               isActive 
                 ? "text-neutral-900 dark:text-white" 
                 : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
