@@ -55,6 +55,9 @@ RUN npm ci --only=production
 # Copy frontend static build to Nginx public directory
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
 
+# Copy frontend static build to Express public directory (for direct Node hosting on Render)
+COPY --from=frontend-builder /app/frontend/dist ./public
+
 # Copy Nginx server configuration
 COPY nginx.conf /etc/nginx/http.d/default.conf
 

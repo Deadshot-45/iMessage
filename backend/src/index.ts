@@ -71,7 +71,7 @@ if (fs.existsSync(frontendDist)) {
 server.listen(PORT, async () => {
   await connection();
   console.log(`Server is running on port ${PORT}`);
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" || process.env.RENDER === "true") {
     job.start();
   }
 });
