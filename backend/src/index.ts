@@ -18,7 +18,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL;
 
-app.use("/api/webhooks/clerk", express.raw({type: "application/json"}), clerkWebhook);
+app.use(
+  "/api/webhooks/clerk",
+  express.raw({ type: "application/json" }),
+  clerkWebhook,
+);
 
 // Middleware
 app.use(
@@ -34,19 +38,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(clerkMiddleware());
 
 // Routes
-//app.get("/", (req: Request, res: Response) => {
-//  res.json({ message: "Chat App Backend API is running with TypeScript!" });
-//});
-
+app.get("/", (req: Request, res: Response) => {
+  res.json({ message: "Chat App Backend API is running with TypeScript!" });
+});
 app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "OK", success: true });
 });
-
-app.use("/api/auth", authRoutes)
+app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/user", userRoutes);
-
-
 
 const publicDir = path.join(process.cwd(), "public");
 
