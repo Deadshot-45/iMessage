@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { SuspenseLoader } from "./components/SuspenseLoader";
+import { Toaster } from "react-hot-toast";
 
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -34,6 +35,13 @@ function App() {
   return (
     <div className="imessage-container">
       <RouterProvider router={router} />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 5000,
+          className: "!bg-gray-900 !text-white !border !border-gray-700",
+        }}
+      />
     </div>
   );
 }

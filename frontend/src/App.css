@@ -1,15 +1,17 @@
 /* iMessage App Custom Properties & Typography */
-@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap");
 
 :root {
-  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", sans-serif;
-  
+  --font-apple:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", "Inter", sans-serif;
+
   /* iMessage Color Palette */
   --imessage-blue: #007aff;
   --imessage-blue-grad: linear-gradient(180deg, #3a9cff 0%, #007aff 100%);
   --imessage-gray: #e9e9eb;
   --imessage-gray-dark: #262629;
-  
+
   /* Light Mode Variables */
   /* Base Light Mode Variables */
   --win-bg-base: rgba(255, 255, 255, 0.72);
@@ -20,10 +22,22 @@
 
   /* Mixed Light Mode Variables */
   --win-bg: color-mix(in srgb, var(--win-bg-base), var(--imessage-blue) 4%);
-  --win-border: color-mix(in srgb, var(--win-border-base), var(--imessage-blue) 12%);
-  --sidebar-bg: color-mix(in srgb, var(--sidebar-bg-base), var(--imessage-blue) 3%);
+  --win-border: color-mix(
+    in srgb,
+    var(--win-border-base),
+    var(--imessage-blue) 12%
+  );
+  --sidebar-bg: color-mix(
+    in srgb,
+    var(--sidebar-bg-base),
+    var(--imessage-blue) 3%
+  );
   --chat-bg: color-mix(in srgb, var(--chat-bg-base), var(--imessage-blue) 2.5%);
-  --panel-border: color-mix(in srgb, var(--panel-border-base), var(--imessage-blue) 8%);
+  --panel-border: color-mix(
+    in srgb,
+    var(--panel-border-base),
+    var(--imessage-blue) 8%
+  );
 
   --app-bg: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
   --text-primary: #1d1d1f;
@@ -48,10 +62,22 @@
   --panel-border-base: rgba(255, 255, 255, 0.06);
 
   --win-bg: color-mix(in srgb, var(--win-bg-base), var(--imessage-blue) 5.5%);
-  --win-border: color-mix(in srgb, var(--win-border-base), var(--imessage-blue) 14%);
-  --sidebar-bg: color-mix(in srgb, var(--sidebar-bg-base), var(--imessage-blue) 4.5%);
+  --win-border: color-mix(
+    in srgb,
+    var(--win-border-base),
+    var(--imessage-blue) 14%
+  );
+  --sidebar-bg: color-mix(
+    in srgb,
+    var(--sidebar-bg-base),
+    var(--imessage-blue) 4.5%
+  );
   --chat-bg: color-mix(in srgb, var(--chat-bg-base), var(--imessage-blue) 3.5%);
-  --panel-border: color-mix(in srgb, var(--panel-border-base), var(--imessage-blue) 10%);
+  --panel-border: color-mix(
+    in srgb,
+    var(--panel-border-base),
+    var(--imessage-blue) 10%
+  );
 
   --app-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   --text-primary: #f5f5f7;
@@ -83,7 +109,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  min-height: 100vh;
+  min-height: 90dvh;
   width: 100%;
   display: flex;
   align-items: center;
@@ -103,7 +129,9 @@
   background: var(--win-bg);
   border: 1px solid var(--win-border);
   border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.2),
+    0 0 1px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   display: flex;
@@ -239,7 +267,9 @@
   border-radius: 10px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s, transform 0.1s ease;
+  transition:
+    background-color 0.2s,
+    transform 0.1s ease;
   position: relative;
   gap: 12px;
 }
@@ -544,7 +574,9 @@
 }
 
 @keyframes typing-bounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: translateY(0);
     opacity: 0.4;
   }
@@ -606,7 +638,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.2s;
+  transition:
+    transform 0.15s ease,
+    opacity 0.2s;
 }
 
 .send-btn:hover {
@@ -872,7 +906,7 @@
   right: 0;
   bottom: 0;
   background-color: var(--text-muted);
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 34px;
 }
 
@@ -884,7 +918,7 @@
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 50%;
 }
 
@@ -963,5 +997,15 @@ input:checked + .slider:before {
   }
   100% {
     opacity: 0.15;
+  }
+}
+
+/* Levitating float animation */
+@keyframes auth-float-y {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
   }
 }

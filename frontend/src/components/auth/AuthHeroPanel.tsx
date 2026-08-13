@@ -1,16 +1,15 @@
-
 import { APP_NAME } from "../LockScreen";
 import { AuthHeroPattern } from "./AuthHeroPattern";
 
 const heroPanelClassName = [
-  "relative flex w-full min-h-[min(320px,42vh)] shrink-0 flex-col overflow-hidden",
+  "relative flex w-full md:min-h-[min(320px,42vh)] shrink-0 flex-col overflow-hidden",
   "bg-[#E8E8ED] dark:bg-black",
   "md:w-[44%] md:max-w-xl md:border-r md:border-black/10 dark:md:border-white/10",
   "lg:w-[42%] lg:max-w-none",
 ].join(" ");
 
 const heroImageClassName = [
-  "h-auto max-h-[min(44vh,380px)] w-[min(92%,19rem)]",
+  "h-auto max-h-[140px] md:max-h-[min(44vh,380px)] w-[min(92%,19rem)]",
   "animate-[auth-float-y_4.5s_ease-in-out_infinite]",
   "object-contain object-center select-none motion-reduce:animate-none",
   "sm:w-[min(88%,21rem)] md:max-h-[min(52vh,440px)] md:w-[min(90%,22rem)]",

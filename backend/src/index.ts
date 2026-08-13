@@ -10,7 +10,7 @@ import clerkWebhook from "./weebhooks/clerk.webhooks.js";
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
-import { app, server } from "./lib/socket.js";
+import { app, server, isOriginAllowed } from "./lib/socket.js";
 
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL;
@@ -24,7 +24,13 @@ app.use(
 // Middleware
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   }),
 );
@@ -40,7 +46,7 @@ app.get("/health", (req: Request, res: Response) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/users", userRoutes);
 app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "Chat App Backend API is running with TypeScript!" });
 });
@@ -60,7 +66,9 @@ if (fs.existsSync(frontendDist)) {
     res.sendFile(path.join(publicDir, "index.html"));
   });
 } else {
-  console.log("Static files directory not found. Defaulting / to API welcome message.");
+  console.log(
+    "Static files directory not found. Defaulting / to API welcome message.",
+  );
   app.get("/", (req: Request, res: Response) => {
     res.json({ message: "Chat App Backend API is running with TypeScript!" });
   });

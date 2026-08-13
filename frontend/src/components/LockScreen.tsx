@@ -15,7 +15,7 @@ const LockScreen = () => {
   if (!isLoaded) return <LoadingScreen />;
   if (isSignedIn) return <Navigate to="/" replace />;
   return (
-    <main className="imessage-window mx-auto flex w-full max-w-368 flex-1 flex-col overflow-hidden text-foreground">
+    <main className="imessage-window mx-auto flex w-full max-w-md md:max-w-[1180px] flex-1 flex-col overflow-hidden text-foreground">
       <nav className="w-full border-b border-border p-3">
         <section className="flex items-center justify-between gap-4">
           <article className="flex items-center gap-2">
@@ -34,7 +34,7 @@ const LockScreen = () => {
           </div>
         </section>
       </nav>
-      <main className="relative flex flex-1 flex-col bg-background overflow-hidden md:flex-row">
+      <main className="relative flex flex-1 flex-col bg-background overflow-y-auto md:overflow-hidden md:flex-row">
         <AuthHeroPanel />
         <AuthActionPanel />
       </main>

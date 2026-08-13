@@ -11,6 +11,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useChatStore } from "@/store/useChatStore";
+import { useEffect } from "react";
 
 interface SidebarProps {
   conversations: Conversation[];
@@ -31,6 +33,20 @@ export function Sidebar({
   isTypingId,
   mutedChats,
 }: SidebarProps) {
+  const getUsers = useChatStore((state) => state.getUsers);
+  const getConversations = useChatStore((state) => state.getConversations);
+  const users = useChatStore((state) => state.users);
+  const storeConversations = useChatStore((state) => state.conversations);
+
+  useEffect(() => {
+    getUsers();
+    getConversations();
+  }, [getUsers, getConversations]);
+
+  useEffect(() => {
+    console.log("Users:", users);
+    console.log("Conversations:", storeConversations);
+  }, [users, storeConversations]);
 
   return (
     <div className="imessage-sidebar">

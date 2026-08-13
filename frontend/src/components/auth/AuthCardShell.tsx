@@ -29,7 +29,7 @@ export function AuthCardShell({ children }: { children: React.ReactNode }) {
             className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-accent/35 to-transparent dark:via-accent/40"
           />
 
-          <div className="relative px-8 pb-9 pt-10 sm:px-10 sm:pb-10 sm:pt-11">
+          <div className="relative px-5 pb-6 pt-7 sm:px-10 sm:pb-10 sm:pt-11">
             {children}
           </div>
         </div>

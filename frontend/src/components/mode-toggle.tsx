@@ -15,7 +15,11 @@ export function ModeToggle({ className }: ModeToggleProps) {
   ] as const;
 
   // Find index to position sliding background
-  const activeIndex = options.findIndex((opt) => opt.value === theme);
+  const resolvedTheme = theme === "system"
+    ? (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : theme;
+
+  const activeIndex = Math.max(0, options.findIndex((opt) => opt.value === resolvedTheme));
 
   return (
     <div 
@@ -26,7 +30,7 @@ export function ModeToggle({ className }: ModeToggleProps) {
     >
       {/* Sliding background circle */}
       <div 
-        className="absolute left-0.5 w-[28px] h-[28px] rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
+        className="absolute top-0.5 left-0.5 w-[28px] h-[28px] rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
         style={{
           transform: `translateX(${activeIndex * 24}px)`,
         }}

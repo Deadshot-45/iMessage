@@ -66,7 +66,7 @@ const getConversations = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Conversations fetched successfully",
-      status: 200,
+      status: 200,  
       conversations,
     });
   } catch (error) {

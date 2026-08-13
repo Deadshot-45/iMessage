@@ -10,7 +10,7 @@ const Home = () => {
   const [conversations, setConversations] = useState<Conversation[]>(
     INITIAL_CONVERSATIONS,
   );
-  const [activeChatId, setActiveChatId] = useState<number | null>(1);
+  const [activeChatId, setActiveChatId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [inputText, setInputText] = useState("");
   const [showDetails, setShowDetails] = useState(false);
@@ -124,14 +124,14 @@ const Home = () => {
   };
 
   return (
-      <div className={`imessage-window ${activeChatId ? "chat-active" : ""}`}>
-        {/* Sidebar (Left) */}
-        <Sidebar
-          conversations={filteredConversations}
-          activeChatId={activeChatId}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onSelectConversation={handleSelectConversation}
+    <div className={`imessage-window ${activeChatId ? "chat-active" : ""}`}>
+      {/* Sidebar (Left) */}
+      <Sidebar
+        conversations={filteredConversations}
+        activeChatId={activeChatId}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSelectConversation={handleSelectConversation}
           isTypingId={isTyping}
           mutedChats={mutedChats}
         />
