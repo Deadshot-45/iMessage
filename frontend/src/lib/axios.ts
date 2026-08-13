@@ -66,7 +66,7 @@ export function normalizeApiError(error: unknown): ApiError {
 }
 
 const getBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
+  const envUrl = import.meta.env.CLIENT_URL?.replace(/\/$/, "");
   return envUrl ?? "http://localhost:3000";
 };
 
