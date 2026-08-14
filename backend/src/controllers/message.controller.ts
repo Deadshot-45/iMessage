@@ -63,18 +63,28 @@ const getConversations = async (req: Request, res: Response) => {
         },
       },
     ]);
+    if (!conversations || conversations.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No conversations found",
+        status: 200,
+        conversations: [],
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Conversations fetched successfully",
       status: 200,  
       conversations,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return res.status(500).json({
+    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
+    return res.status(statusCode).json({
       success: false,
-      status: 500,
-      message: "Internal Server Error",
+      status: statusCode,
+      message: error.message || "Internal Server Error",
     });
   }
 };
@@ -95,11 +105,20 @@ const getMessages = async (req: Request, res: Response) => {
     const conversations = await Message.find({
       $or: [
         { senderId, receiverId },
-        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId },
       ],
     })
       .sort({ createdAt: 1 })
       .select("-clerkId -password -updatedAt -__v");
+
+    if (!conversations || conversations.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No messages found in this conversation",
+        status: 200,
+        conversations: [],
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -107,12 +126,13 @@ const getMessages = async (req: Request, res: Response) => {
       status: 200,
       conversations,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return res.status(500).json({
+    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
+    return res.status(statusCode).json({
       success: false,
-      status: 500,
-      message: "Internal Server Error",
+      status: statusCode,
+      message: error.message || "Internal Server Error",
     });
   }
 };
@@ -185,7 +205,15 @@ const sendMessage = async (req: Request, res: Response) => {
       status: 201,
       newMessage,
     });
-  } catch (error) {}
+  } catch (error: any) {
+    console.log(error);
+    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
+    return res.status(statusCode).json({
+      success: false,
+      status: statusCode,
+      message: error.message || "Internal Server Error",
+    });
+  }
 };
 
 export { getConversations, getMessages, sendMessage };

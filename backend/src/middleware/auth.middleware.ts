@@ -10,13 +10,21 @@ const checkUser = async (req: Request, res: Response) => {
         .json({ message: "Unauthorized", success: false, status: 401 });
     }
 
+    const userObj = typeof req.user.toObject === "function" ? req.user.toObject() : req.user;
+
     res
       .status(200)
-      .json({ message: "User is verified", success: true, status: 200 });
-  } catch (error) {
+      .json({
+        ...userObj,
+        message: "User is verified",
+        success: true,
+        status: 200,
+      });
+  } catch (error: any) {
+    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
     res
-      .status(500)
-      .json({ message: "Internal server error", success: false, status: 500 });
+      .status(statusCode)
+      .json({ message: error.message || "Internal server error", success: false, status: statusCode });
   }
 };
 
@@ -38,8 +46,8 @@ const protectRoute = async (
     const user = await User.findOne({ clerkId: userId });
     if (!user) {
       return res
-        .status(404)
-        .json({ message: "User not found", success: false, status: 404 });
+        .status(200)
+        .json({ message: "User not found", success: false, status: 200 });
     }
 
     console.log("mongo user", user);
@@ -47,11 +55,12 @@ const protectRoute = async (
     // Attaching user to req
     req.user = user;
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
+    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
     res
-      .status(500)
-      .json({ message: "Error in server side", success: false, status: 500 });
+      .status(statusCode)
+      .json({ message: error.message || "Error in server side", success: false, status: statusCode });
   }
 };
 

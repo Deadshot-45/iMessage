@@ -17,18 +17,28 @@ const getUsers = async (req: Request, res: Response) => {
       _id: { $ne: loggedInUserId },
     }).select(" -password -clerkId ");
 
+    if (!users || users.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No users found",
+        status: 200,
+        users: [],
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Users fetched successfully",
       status: 200,
       users,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return res.status(500).json({
+    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
+    return res.status(statusCode).json({
       success: false,
-      status: 500,
-      message: "Internal Server Error",
+      status: statusCode,
+      message: error.message || "Internal Server Error",
     });
   }
 };
