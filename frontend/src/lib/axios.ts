@@ -71,6 +71,7 @@ const getBaseUrl = () => {
 };
 
 const BASE_URL = getBaseUrl();
+console.log(import.meta.env.VITE_API_URL);
 /**
  * Custom Axios Instance
  */
