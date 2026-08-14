@@ -1,4 +1,5 @@
 import ImageKit, { toFile } from "@imagekit/nodejs";
+import { createHmac } from "crypto";
 
 const imagekit = new ImageKit({
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY as string,
@@ -29,7 +30,6 @@ const uploadChatMedia = async (file: any) => {
  * Spec: https://imagekit.io/docs/upload-file#uploading-file-via-api
  */
 const getAuthParams = () => {
-  const { createHmac } = require("crypto");
   const IMAGEKIT_PUBLIC_KEY = process.env.IMAGEKIT_PUBLIC_KEY || "";
   const IMAGEKIT_PRIVATE_KEY = process.env.IMAGEKIT_PRIVATE_KEY || "";
   const IMGKIT_ID = process.env.IMGKIT || "";
