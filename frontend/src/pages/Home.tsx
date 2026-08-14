@@ -1,127 +1,132 @@
 import { ChatPanel } from "@/components/ChatPanel";
 import { DetailsPanel } from "@/components/DetailsPanel";
 import { Sidebar } from "@/components/Sidebar";
-import { INITIAL_CONVERSATIONS } from "@/constants/conversations";
-import type { Conversation, Message } from "@/types";
-import { useMemo, useState } from "react";
+import { useChatStore } from "@/store/useChatStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useEffect, useMemo, useState } from "react";
+
+const getDeterministicColor = (name: string) => {
+  const colors = ["#ff2d55", "#5856d6", "#34c759", "#007aff", "#af52de", "#ff9500"];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 const Home = () => {
-  // App States
-  const [conversations, setConversations] = useState<Conversation[]>(
-    INITIAL_CONVERSATIONS,
-  );
-  const [activeChatId, setActiveChatId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const users = useChatStore((state) => state.users);
+  const storeConversations = useChatStore((state) => state.conversations);
+  const activeChatId = useChatStore((state) => state.activeChatId);
+  const setActiveChatId = useChatStore((state) => state.setActiveChatId);
+  const getMessages = useChatStore((state) => state.getMessages);
+  const messages = useChatStore((state) => state.messages);
+  const sendMessage = useChatStore((state) => state.sendMessage);
+  const sidebarTab = useChatStore((state) => state.sidebarTab);
+  const searchQuery = useChatStore((state) => state.searchQuery);
+  const setSearchQuery = useChatStore((state) => state.setSearchQuery);
+  const subscribeToMessage = useChatStore((state) => state.subscribeToMessage);
+  const unsubscribeFromMessages = useChatStore((state) => state.unsubscribeFromMessages);
+  const getUsers = useChatStore((state) => state.getUsers);
+  const getConversations = useChatStore((state) => state.getConversations);
+
+  const authUser = useAuthStore((state) => state.authUser);
+  const onlineUsers = useAuthStore((state) => state.onlineUsers);
+
   const [inputText, setInputText] = useState("");
   const [showDetails, setShowDetails] = useState(false);
-  const [isTyping, setIsTyping] = useState<number | null>(null);
-  const [mutedChats, setMutedChats] = useState<Record<number, boolean>>({});
+  const [mutedChats, setMutedChats] = useState<Record<string | number, boolean>>({});
 
-  // Active chat object
-  const activeChat = useMemo(() => {
-    return conversations.find((c) => c.id === activeChatId) || null;
-  }, [conversations, activeChatId]);
+  // Sync with store on activeChatId changes
+  useEffect(() => {
+    if (activeChatId) {
+      getMessages(activeChatId);
+      subscribeToMessage(activeChatId);
+    }
+    return () => {
+      unsubscribeFromMessages();
+    };
+  }, [activeChatId, getMessages, subscribeToMessage, unsubscribeFromMessages]);
 
-  // Filtered chats based on search
-  const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
-    const q = searchQuery.toLowerCase();
-    return conversations.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.messages.some((m) => m.text.toLowerCase().includes(q)),
-    );
-  }, [conversations, searchQuery]);
+  useEffect(() => {
+    getUsers();
+    getConversations();
+  }, [getUsers, getConversations]);
 
-  // Mark active chat as read
-  const handleSelectConversation = (id: number) => {
+  const handleSelectConversation = (id: any) => {
     setActiveChatId(id);
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, unread: false } : c)),
-    );
   };
 
-  // Handle message sending
   const handleSendMessage = () => {
     if (!inputText.trim() || !activeChatId) return;
-
-    const newMessage: Message = {
-      id: Date.now(),
-      text: inputText,
-      sender: "me",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    // Update conversation message list
-    setConversations((prev) =>
-      prev.map((c) => {
-        if (c.id === activeChatId) {
-          return {
-            ...c,
-            messages: [...c.messages, newMessage],
-          };
-        }
-        return c;
-      }),
-    );
-
-    const sentText = inputText;
+    sendMessage(activeChatId, { message: inputText });
     setInputText("");
-
-    // Simulate contact reply
-    setIsTyping(activeChatId);
-
-    setTimeout(() => {
-      setConversations((prev) =>
-        prev.map((c) => {
-          if (c.id === activeChatId) {
-            const nextReply = c.replies[0] || "Got it!";
-            // Rotate replies
-            const updatedReplies = c.replies.slice(1);
-            if (updatedReplies.length === 0) {
-              updatedReplies.push(
-                `Thanks for your message: "${sentText.substring(0, 15)}..."`,
-              );
-            }
-
-            const replyMessage: Message = {
-              id: Date.now() + 1,
-              text: nextReply,
-              sender: "them",
-              timestamp: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            };
-
-            return {
-              ...c,
-              messages: [...c.messages, replyMessage],
-              replies: updatedReplies,
-            };
-          }
-          return c;
-        }),
-      );
-      setIsTyping(null);
-    }, 2500); // 2.5s realistic delay
   };
 
-  const toggleMuteChat = (id: number) => {
+  const toggleMuteChat = (id: string | number) => {
     setMutedChats((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
   };
 
-  const clearChatHistory = (id: number) => {
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, messages: [] } : c)),
-    );
+  const clearChatHistory = (_id: string | number) => {
+    // Local clear or store clear logic if supported
   };
+
+  const uiConversations = useMemo(() => {
+    const list = sidebarTab === "chats" ? storeConversations : users;
+
+    return list.map((item: any) => {
+      const isSelected = String(item._id) === String(activeChatId);
+      const chatMessages = isSelected ? messages : [];
+
+      const uiMessages = chatMessages.map((msg: any) => ({
+        id: msg._id,
+        text: msg.message || msg.text || "",
+        sender: (String(msg.senderId) === String(authUser?._id) ? "me" : "them") as "me" | "them",
+        timestamp: msg.createdAt
+          ? new Date(msg.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "",
+      }));
+
+      // Find last message details
+      const lastMsgText = item.lastMessage?.message || "";
+      const lastMsgTime = item.lastMessage?.createdAt
+        ? new Date(item.lastMessage.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "";
+
+      return {
+        id: item._id,
+        name: item.fullName || item.username || "User",
+        avatarColor: item.avatarColor || getDeterministicColor(item.fullName || item.username || "User"),
+        status: onlineUsers.includes(item._id) ? "Online" : "Offline",
+        unread: false,
+        messages: uiMessages.length > 0 ? uiMessages : (lastMsgText ? [{ id: "last", text: lastMsgText, sender: "them" as "me" | "them", timestamp: lastMsgTime }] : []),
+        replies: [],
+      };
+    });
+  }, [sidebarTab, storeConversations, users, activeChatId, messages, authUser, onlineUsers]);
+
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return uiConversations;
+    const q = searchQuery.toLowerCase();
+    return uiConversations.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.messages.some((m: any) => m.text.toLowerCase().includes(q)),
+    );
+  }, [uiConversations, searchQuery]);
+
+  const activeChat = useMemo(() => {
+    return uiConversations.find((c) => String(c.id) === String(activeChatId)) || null;
+  }, [uiConversations, activeChatId]);
 
   return (
     <div className={`imessage-window ${activeChatId ? "chat-active" : ""}`}>
@@ -132,34 +137,33 @@ const Home = () => {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onSelectConversation={handleSelectConversation}
-          isTypingId={isTyping}
-          mutedChats={mutedChats}
-        />
+        isTypingId={null}
+        mutedChats={mutedChats}
+      />
 
-        {/* Chat Area (Center) */}
-        <ChatPanel
+      {/* Chat Area (Center) */}
+      <ChatPanel
+        activeChat={activeChat}
+        inputText={inputText}
+        setInputText={setInputText}
+        onSendMessage={handleSendMessage}
+        isTyping={false}
+        onBack={() => setActiveChatId(null)}
+        showDetails={showDetails}
+        setShowDetails={setShowDetails}
+      />
+
+      {/* Details Panel (Right) */}
+      {activeChat && showDetails && (
+        <DetailsPanel
           activeChat={activeChat}
-          inputText={inputText}
-          setInputText={setInputText}
-          onSendMessage={handleSendMessage}
-          isTyping={isTyping === activeChatId}
-          onBack={() => setActiveChatId(null)}
-          showDetails={showDetails}
-          setShowDetails={setShowDetails}
+          isMuted={!!mutedChats[activeChat.id]}
+          onToggleMute={() => toggleMuteChat(activeChat.id)}
+          onClearHistory={() => clearChatHistory(activeChat.id)}
+          onClose={() => setShowDetails(false)}
         />
-
-        {/* Details Panel (Right) */}
-        {activeChat && showDetails && (
-          <DetailsPanel
-            activeChat={activeChat}
-            isMuted={!!mutedChats[activeChat.id]}
-            onToggleMute={() => toggleMuteChat(activeChat.id)}
-            onClearHistory={() => clearChatHistory(activeChat.id)}
-            onClose={() => setShowDetails(false)}
-          />
-        )}
-      </div>
-   
+      )}
+    </div>
   );
 };
 

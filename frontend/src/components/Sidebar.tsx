@@ -1,6 +1,5 @@
 import { UserButton } from "@clerk/react";
 import { Search, MoreVertical } from "lucide-react";
-import type { Conversation } from "../types";
 import { ConversationItem } from "./ConversationItem";
 import { ModeToggle } from "./mode-toggle";
 import { WallpaperToggle } from "./wallpaper-toggle";
@@ -15,13 +14,13 @@ import { useChatStore } from "@/store/useChatStore";
 import { useEffect } from "react";
 
 interface SidebarProps {
-  conversations: Conversation[];
-  activeChatId: number | null;
+  conversations: any[];
+  activeChatId: any;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  onSelectConversation: (id: number) => void;
-  isTypingId: number | null;
-  mutedChats: Record<number, boolean>;
+  onSelectConversation: (id: any) => void;
+  isTypingId: any;
+  mutedChats: Record<string | number, boolean>;
 }
 
 export function Sidebar({
@@ -37,6 +36,8 @@ export function Sidebar({
   const getConversations = useChatStore((state) => state.getConversations);
   const users = useChatStore((state) => state.users);
   const storeConversations = useChatStore((state) => state.conversations);
+  const sidebarTab = useChatStore((state) => state.sidebarTab);
+  const setSidebarTab = useChatStore((state) => state.setSidebarTab);
 
   useEffect(() => {
     getUsers();
@@ -75,6 +76,32 @@ export function Sidebar({
           <div className="size-8 flex items-center justify-center">
             <UserButton />
           </div>
+        </div>
+      </div>
+
+      {/* Segmented Tab Switcher */}
+      <div className="px-5 pb-3">
+        <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg text-[11px] font-semibold relative">
+          <button
+            onClick={() => setSidebarTab("chats")}
+            className={`flex-1 py-1 rounded-md transition-all duration-200 cursor-pointer ${
+              sidebarTab === "chats"
+                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Chats
+          </button>
+          <button
+            onClick={() => setSidebarTab("users")}
+            className={`flex-1 py-1 rounded-md transition-all duration-200 cursor-pointer ${
+              sidebarTab === "users"
+                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Users
+          </button>
         </div>
       </div>
 

@@ -34,6 +34,8 @@ interface ChatState {
   ) => Promise<void>;
   setActiveChatId: (id: string | number | null) => void;
   addMessage: (message: any) => void;
+  subscribeToMessage: (userId: string | number) => void;
+  unsubscribeFromMessages: () => void;
 }
 
 export const useChatStore = create<ChatState>()(

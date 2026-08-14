@@ -1,12 +1,12 @@
 export interface Message {
-  id: number;
+  id: string | number;
   text: string;
   sender: "me" | "them";
   timestamp: string;
 }
 
 export interface Conversation {
-  id: number;
+  id: string | number;
   name: string;
   avatarColor: string;
   status: string;
