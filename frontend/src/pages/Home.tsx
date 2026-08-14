@@ -115,6 +115,20 @@ const Home = () => {
             minute: "2-digit",
           })
         : "";
+      const lastMsgMediaType = item.lastMessage?.mediaType || undefined;
+      const lastMsgMediaUrl = item.lastMessage?.mediaUrl || undefined;
+
+      // Build the last message fallback for conversations not currently open
+      const fallbackLastMsg = (lastMsgText || lastMsgMediaType)
+        ? [{
+            id: "last",
+            text: lastMsgText,
+            sender: "them" as "me" | "them",
+            timestamp: lastMsgTime,
+            mediaType: lastMsgMediaType,
+            mediaUrl: lastMsgMediaUrl,
+          }]
+        : [];
 
       return {
         id: item._id,
@@ -122,7 +136,7 @@ const Home = () => {
         avatarColor: item.avatarColor || getDeterministicColor(item.fullName || item.username || "User"),
         status: onlineUsers.includes(item._id) ? "Online" : "Offline",
         unread: false,
-        messages: uiMessages.length > 0 ? uiMessages : (lastMsgText ? [{ id: "last", text: lastMsgText, sender: "them" as "me" | "them", timestamp: lastMsgTime }] : []),
+        messages: uiMessages.length > 0 ? uiMessages : fallbackLastMsg,
         replies: [],
       };
     });

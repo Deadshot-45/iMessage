@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell, ImageIcon, Video } from "lucide-react";
 import type { Conversation } from "../types";
 
 interface ConversationItemProps {
@@ -44,7 +44,28 @@ export function ConversationItem({
             {isTyping ? (
               <span style={{ color: "var(--imessage-blue)", fontWeight: "500" }}>typing...</span>
             ) : lastMessage ? (
-              `${lastMessage.sender === "me" ? "You: " : ""}${lastMessage.text}`
+              (() => {
+                const prefix = lastMessage.sender === "me" ? "You: " : "";
+                if (lastMessage.mediaType === "image") {
+                  return (
+                    <span className="flex items-center gap-1">
+                      {prefix && <span>{prefix}</span>}
+                      <ImageIcon size={12} className="inline shrink-0 opacity-70" />
+                      <span>Photo</span>
+                    </span>
+                  );
+                }
+                if (lastMessage.mediaType === "video") {
+                  return (
+                    <span className="flex items-center gap-1">
+                      {prefix && <span>{prefix}</span>}
+                      <Video size={12} className="inline shrink-0 opacity-70" />
+                      <span>Video</span>
+                    </span>
+                  );
+                }
+                return `${prefix}${lastMessage.text}`;
+              })()
             ) : (
               "No messages yet"
             )}
