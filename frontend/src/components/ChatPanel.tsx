@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from "react";
-import { ChevronLeft, Info, Phone, Video, MessageSquare, Plus, Smile, Send } from "lucide-react";
+import { ChevronLeft, Info, Phone, Video, MessageSquare, Plus, Smile, Send, Loader2 } from "lucide-react";
 import type { Conversation } from "../types";
 import { Input } from "./ui/input";
+import { useChatStore } from "@/store/useChatStore";
 
 
 interface ChatPanelProps {
@@ -13,6 +14,8 @@ interface ChatPanelProps {
   onBack: () => void;
   showDetails: boolean;
   setShowDetails: (show: boolean) => void;
+  selectedFile: File | null;
+  setSelectedFile: (file: File | null) => void;
 }
 
 export function ChatPanel({
@@ -24,8 +27,19 @@ export function ChatPanel({
   onBack,
   showDetails,
   setShowDetails,
+  selectedFile,
+  setSelectedFile,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const sendingMedia = useChatStore((state) => state.sendingMedia);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
 
   // Auto scroll to bottom of thread
   useEffect(() => {
@@ -104,7 +118,26 @@ export function ChatPanel({
 
               return (
                 <div key={msg.id} className={`message-row ${isSent ? "sent" : "received"}`}>
-                  <div className="bubble">{msg.text}</div>
+                  <div className="bubble flex flex-col gap-2 max-w-[260px] sm:max-w-[320px]">
+                    {msg.mediaUrl && (
+                      <div className="rounded-lg overflow-hidden max-w-full">
+                        {msg.mediaType === "video" ? (
+                          <video
+                            src={msg.mediaUrl}
+                            controls
+                            className="max-w-full max-h-[200px] rounded-lg"
+                          />
+                        ) : (
+                          <img
+                            src={msg.mediaUrl}
+                            alt="Attached media"
+                            className="max-w-full max-h-[200px] object-cover rounded-lg"
+                          />
+                        )}
+                      </div>
+                    )}
+                    {msg.text && <div className="leading-snug break-words">{msg.text}</div>}
+                  </div>
                   {showStatus && (
                     <span className="msg-status">
                       {isTyping ? "Delivered" : "Read"}
@@ -128,20 +161,66 @@ export function ChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Selected Media Preview */}
+      {selectedFile && (
+        <div className="px-5 py-3.5 border-t border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.01] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {selectedFile.type.startsWith("image/") ? (
+              <img
+                src={URL.createObjectURL(selectedFile)}
+                alt="Preview"
+                className="size-16 rounded-xl object-cover border border-black/10 dark:border-white/10"
+              />
+            ) : (
+              <div className="size-16 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                Video
+              </div>
+            )}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold max-w-[200px] truncate">{selectedFile.name}</span>
+              <span className="text-[10px] text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setSelectedFile(null)}
+            className="text-xs font-bold text-red-500 hover:text-red-600 bg-transparent border-0 cursor-pointer transition-all duration-150"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* Chat Input Bar */}
       <div className="chat-input-area">
-        <button className="action-btn" style={{ padding: "8px" }}>
-          <Plus size={20} style={{ color: "var(--text-secondary)" }} />
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*,video/*"
+          onChange={handleFileChange}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="action-btn"
+          style={{ padding: "8px" }}
+          disabled={sendingMedia}
+        >
+          {sendingMedia ? (
+            <Loader2 className="animate-spin text-muted-foreground" size={20} />
+          ) : (
+            <Plus size={20} style={{ color: "var(--text-secondary)" }} />
+          )}
         </button>
 
         <div className="input-container">
           <Input
             type="text"
             className="chat-input border-none! bg-transparent! focus-visible:ring-0! h-auto!"
-            placeholder="iMessage"
+            placeholder={sendingMedia ? "Uploading attachment..." : "iMessage"}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyPress}
+            disabled={sendingMedia}
           />
           <div className="input-actions">
             <Smile size={18} style={{ color: "var(--text-secondary)", cursor: "pointer", marginRight: "6px" }} />
@@ -151,7 +230,7 @@ export function ChatPanel({
         <button
           onClick={onSendMessage}
           className="send-btn"
-          disabled={!inputText.trim()}
+          disabled={(!inputText.trim() && !selectedFile) || sendingMedia}
         >
           <Send size={13} style={{ transform: "rotate(-45deg) translate(1px, -1px)" }} />
         </button>

@@ -3,6 +3,8 @@ export interface Message {
   text: string;
   sender: "me" | "them";
   timestamp: string;
+  mediaUrl?: string;
+  mediaType?: string;
 }
 
 export interface Conversation {

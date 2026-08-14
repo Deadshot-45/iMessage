@@ -36,6 +36,7 @@ const Home = () => {
   const [inputText, setInputText] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [mutedChats, setMutedChats] = useState<Record<string | number, boolean>>({});
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Sync with store on activeChatId changes
   useEffect(() => {
@@ -58,9 +59,10 @@ const Home = () => {
   };
 
   const handleSendMessage = () => {
-    if (!inputText.trim() || !activeChatId) return;
-    sendMessage(activeChatId, { message: inputText });
+    if ((!inputText.trim() && !selectedFile) || !activeChatId) return;
+    sendMessage(activeChatId, { message: inputText, chatMedia: selectedFile || undefined });
     setInputText("");
+    setSelectedFile(null);
   };
 
   const toggleMuteChat = (id: string | number) => {
@@ -91,6 +93,8 @@ const Home = () => {
               minute: "2-digit",
             })
           : "",
+        mediaUrl: msg.mediaUrl,
+        mediaType: msg.mediaType,
       }));
 
       // Find last message details
@@ -151,6 +155,8 @@ const Home = () => {
         onBack={() => setActiveChatId(null)}
         showDetails={showDetails}
         setShowDetails={setShowDetails}
+        selectedFile={selectedFile}
+        setSelectedFile={setSelectedFile}
       />
 
       {/* Details Panel (Right) */}
