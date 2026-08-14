@@ -150,6 +150,7 @@ export const useChatStore = create<ChatState>()(
               headers: {
                 "Content-Type": "multipart/form-data",
               },
+              timeout: 0, // Disable timeout for large media uploads
             },
           );
 
