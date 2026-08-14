@@ -4,6 +4,7 @@ import {
   getMessages,
   getConversations,
   sendMessage,
+  getUploadAuth,
 } from "../controllers/message.controller.js";
 import upload from "../middleware/upload.middleware.js";
 const router = express.Router();
@@ -11,6 +12,7 @@ const router = express.Router();
 router.use(protectRoute);
 
 router.get("/conversations", getConversations);
+router.get("/upload-auth", getUploadAuth);
 router.get("/:id", getMessages);
 router.post("/send/:id", upload.single("chatMedia"), sendMessage);
 

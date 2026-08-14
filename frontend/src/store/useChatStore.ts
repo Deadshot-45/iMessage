@@ -129,30 +129,47 @@ export const useChatStore = create<ChatState>()(
         };
 
         // Append optimistically to show text/preview instantly
-        set({
-          messages: [...get().messages, optimisticMsg],
-        });
+        set({ messages: [...get().messages, optimisticMsg] });
 
         try {
+          if (chatMedia) set({ sendingMedia: true });
+
+          let uploadedMediaUrl = "";
+          let uploadedMediaType = "";
+
           if (chatMedia) {
-            set({ sendingMedia: true });
-          }
-          const formData = new FormData();
-          formData.append("message", message);
-          if (chatMedia) {
-            formData.append("chatMedia", chatMedia);
+            // Step 1: Fetch a short-lived auth token from backend (fast, no file transfer)
+            const authRes = await axiosInstance.get("/message/upload-auth");
+            const { token, expire, signature, publicKey, urlEndpoint } = authRes.data;
+
+            // Step 2: Upload directly to ImageKit CDN (bypasses Express server entirely)
+            const uploadForm = new FormData();
+            uploadForm.append("file", chatMedia);
+            uploadForm.append("fileName", `chat-${Date.now()}-${chatMedia.name}`);
+            uploadForm.append("folder", "chat_media");
+            uploadForm.append("token", token);
+            uploadForm.append("expire", String(expire));
+            uploadForm.append("signature", signature);
+            uploadForm.append("publicKey", publicKey);
+
+            const ikRes = await fetch(`${urlEndpoint}/api/v1/files/upload`, {
+              method: "POST",
+              body: uploadForm,
+            });
+
+            if (!ikRes.ok) {
+              throw new Error(`ImageKit upload failed: ${ikRes.status}`);
+            }
+            const ikData = await ikRes.json();
+            uploadedMediaUrl = ikData.url;
+            uploadedMediaType = chatMedia.type.startsWith("video/") ? "video" : "image";
           }
 
-          const res = await axiosInstance.post(
-            `/message/send/${userId}`,
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-              timeout: 0, // Disable timeout for large media uploads
-            },
-          );
+          // Step 3: Tell backend to save the message record with the CDN URL
+          const res = await axiosInstance.post(`/message/send/${userId}`, {
+            message,
+            ...(uploadedMediaUrl && { mediaUrl: uploadedMediaUrl, mediaType: uploadedMediaType }),
+          });
 
           const newMsg = res.data.newMessage;
           if (newMsg) {

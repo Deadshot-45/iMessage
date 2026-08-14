@@ -23,4 +23,30 @@ const uploadChatMedia = async (file: any) => {
   return response;
 };
 
-export { hasImagekitConfig, uploadChatMedia };
+/**
+ * Generates a short-lived auth signature for direct client-side ImageKit uploads.
+ * The client uses this token to upload directly to ImageKit CDN, skipping the server hop.
+ * Spec: https://imagekit.io/docs/upload-file#uploading-file-via-api
+ */
+const getAuthParams = () => {
+  const { createHmac } = require("crypto");
+  const IMAGEKIT_PUBLIC_KEY = process.env.IMAGEKIT_PUBLIC_KEY || "";
+  const IMAGEKIT_PRIVATE_KEY = process.env.IMAGEKIT_PRIVATE_KEY || "";
+  const IMGKIT_ID = process.env.IMGKIT || "";
+  // Token = random UUID, expire = unix timestamp + 5 min
+  const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const expire = Math.floor(Date.now() / 1000) + 300;
+  // ImageKit signature: HMAC-SHA1(privateKey, token + expire)
+  const signature = createHmac("sha1", IMAGEKIT_PRIVATE_KEY)
+    .update(token + expire)
+    .digest("hex");
+  return {
+    token,
+    expire,
+    signature,
+    publicKey: IMAGEKIT_PUBLIC_KEY,
+    urlEndpoint: `https://ik.imagekit.io/${IMGKIT_ID}`,
+  };
+};
+
+export { hasImagekitConfig, uploadChatMedia, getAuthParams };

@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useMemo, useState } from "react";
+import { compressImage } from "@/lib/utils";
 
 const getDeterministicColor = (name: string) => {
   const colors = ["#ff2d55", "#5856d6", "#34c759", "#007aff", "#af52de", "#ff9500"];
@@ -58,9 +59,17 @@ const Home = () => {
     setActiveChatId(id);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if ((!inputText.trim() && !selectedFile) || !activeChatId) return;
-    sendMessage(activeChatId, { message: inputText, chatMedia: selectedFile || undefined });
+
+    let mediaToSend = selectedFile || undefined;
+
+    // Compress images before upload (skips videos automatically)
+    if (mediaToSend) {
+      mediaToSend = await compressImage(mediaToSend);
+    }
+
+    sendMessage(activeChatId, { message: inputText, chatMedia: mediaToSend });
     setInputText("");
     setSelectedFile(null);
   };

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Message from "../models/message.model.js";
-import { hasImagekitConfig, uploadChatMedia } from "../lib/imagekit.js";
+import { hasImagekitConfig, uploadChatMedia, getAuthParams } from "../lib/imagekit.js";
 import { getRecieverSocketId, io } from "../lib/socket.js";
 
 const getConversations = async (req: Request, res: Response) => {
@@ -148,15 +148,15 @@ const getMessages = async (req: Request, res: Response) => {
 
 const sendMessage = async (req: Request, res: Response) => {
   try {
-    const { message } = req.body;
+    const { message, mediaUrl: clientMediaUrl, mediaType: clientMediaType } = req.body;
     const receiverId = req.params.id;
     const senderId = req.user?._id;
     const file = req.file;
-    let mediaUrl = "";
-    let mediaType: "image" | "video" | "" = "";
+    let mediaUrl = clientMediaUrl || "";
+    let mediaType: "image" | "video" | "" = clientMediaType || "";
     let mediathumbnailUrl = "";
 
-    if ((!message && !file) || !receiverId || !senderId) {
+    if ((!message && !file && !clientMediaUrl) || !receiverId || !senderId) {
       return res.status(400).json({
         success: false,
         status: 400,
@@ -225,4 +225,23 @@ const sendMessage = async (req: Request, res: Response) => {
   }
 };
 
-export { getConversations, getMessages, sendMessage };
+/**
+ * Returns a short-lived ImageKit auth token for direct client-side uploads.
+ */
+const getUploadAuth = (req: Request, res: Response) => {
+  try {
+    if (!hasImagekitConfig()) {
+      return res.status(503).json({
+        success: false,
+        status: 503,
+        message: "Storage service not available.",
+      });
+    }
+    const params = getAuthParams();
+    return res.status(200).json({ success: true, ...params });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { getConversations, getMessages, sendMessage, getUploadAuth };
