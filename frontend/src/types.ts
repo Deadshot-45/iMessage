@@ -5,6 +5,7 @@ export interface Message {
   timestamp: string;
   mediaUrl?: string;
   mediaType?: string;
+  status?: "sending" | "sent" | "error";
 }
 
 export interface Conversation {

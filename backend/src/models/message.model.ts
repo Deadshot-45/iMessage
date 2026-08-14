@@ -13,7 +13,7 @@ const messageSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    required: true,
+    default: "",
   },
   mediaUrl: {
     type: String,

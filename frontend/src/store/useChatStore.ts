@@ -115,6 +115,24 @@ export const useChatStore = create<ChatState>()(
       },
 
       sendMessage: async (userId, { message, chatMedia }) => {
+        // Create a temporary optimistic message to show instantly
+        const optimisticId = `optimistic-${Date.now()}`;
+        const optimisticMsg = {
+          _id: optimisticId,
+          senderId: useAuthStore.getState().authUser?._id || "",
+          receiverId: userId,
+          message: message || "",
+          mediaUrl: chatMedia ? URL.createObjectURL(chatMedia) : undefined,
+          mediaType: chatMedia ? (chatMedia.type.startsWith("video/") ? "video" : "image") : undefined,
+          createdAt: new Date().toISOString(),
+          status: "sending" as const,
+        };
+
+        // Append optimistically to show text/preview instantly
+        set({
+          messages: [...get().messages, optimisticMsg],
+        });
+
         try {
           if (chatMedia) {
             set({ sendingMedia: true });
@@ -137,12 +155,21 @@ export const useChatStore = create<ChatState>()(
 
           const newMsg = res.data.newMessage;
           if (newMsg) {
+            // Replace optimistic message with the actual backend saved record
             set({
-              messages: [...get().messages, newMsg],
+              messages: get().messages.map((msg) =>
+                msg._id === optimisticId ? { ...newMsg, status: "sent" } : msg
+              ),
             });
           }
         } catch (error) {
           console.error("Error sending message:", error);
+          // Mark the optimistic message as failed
+          set({
+            messages: get().messages.map((msg) =>
+              msg._id === optimisticId ? { ...msg, status: "error" } : msg
+            ),
+          });
           throw error;
         } finally {
           set({ sendingMedia: false });

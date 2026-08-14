@@ -156,7 +156,7 @@ const sendMessage = async (req: Request, res: Response) => {
     let mediaType: "image" | "video" | "" = "";
     let mediathumbnailUrl = "";
 
-    if (!message || !receiverId || !senderId) {
+    if ((!message && !file) || !receiverId || !senderId) {
       return res.status(400).json({
         success: false,
         status: 400,

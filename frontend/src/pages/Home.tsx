@@ -95,6 +95,7 @@ const Home = () => {
           : "",
         mediaUrl: msg.mediaUrl,
         mediaType: msg.mediaType,
+        status: msg.status || "sent",
       }));
 
       // Find last message details

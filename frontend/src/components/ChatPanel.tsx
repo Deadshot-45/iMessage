@@ -123,7 +123,7 @@ export function ChatPanel({
 
               return (
                 <div key={msg.id} className={`message-row ${isSent ? "sent" : "received"}`}>
-                  <div className="bubble flex flex-col gap-2 max-w-[260px] sm:max-w-[320px]">
+                  <div className="bubble flex flex-col gap-1.5 max-w-[260px] sm:max-w-[320px]">
                     {msg.mediaUrl && (
                       <div className="rounded-lg overflow-hidden max-w-full">
                         {msg.mediaType === "video" ? (
@@ -143,7 +143,23 @@ export function ChatPanel({
                         )}
                       </div>
                     )}
-                    {msg.text && <div className="leading-snug break-words">{msg.text}</div>}
+                    {msg.text && <div className="leading-snug break-words pr-2">{msg.text}</div>}
+                    
+                    {/* Timestamp & WhatsApp-style Delivery ticks */}
+                    <div className="flex items-center justify-end gap-1.5 text-[9px] opacity-65 self-end mt-0.5 select-none leading-none">
+                      <span>{msg.timestamp}</span>
+                      {isSent && (
+                        <span className="flex items-center">
+                          {msg.status === "sending" ? (
+                            <Loader2 size={10} className="animate-spin text-white/70" />
+                          ) : msg.status === "error" ? (
+                            <span className="text-red-400 font-bold" title="Failed to send">⚠️</span>
+                          ) : (
+                            <span className="font-semibold text-[10px] tracking-tighter" style={{ letterSpacing: "-1px" }}>✓✓</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {showStatus && (
                     <span className="msg-status">
