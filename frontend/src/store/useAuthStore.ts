@@ -16,8 +16,8 @@ interface AuthState {
 }
 
 const baseURL = import.meta.env.DEV
-  ? "http://localhost:3000/"
-  : "/api";
+  ? "http://localhost:3000"
+  : typeof window !== "undefined" ? window.location.origin : "/";
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   authUser: null,
@@ -61,6 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const socket = io(baseURL, {
       query: { userId: user?._id || user?.userId || user?.clerkId },
+      transports: ["websocket"],
     });
 
     set({ socket: socket });
