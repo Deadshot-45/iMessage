@@ -140,7 +140,7 @@ export const useChatStore = create<ChatState>()(
           if (chatMedia) {
             // Step 1: Fetch a short-lived auth token from backend (fast, no file transfer)
             const authRes = await axiosInstance.get("/message/upload-auth");
-            const { token, expire, signature, publicKey, urlEndpoint } = authRes.data;
+            const { token, expire, signature, publicKey } = authRes.data;
 
             // Step 2: Upload directly to ImageKit CDN (bypasses Express server entirely)
             const uploadForm = new FormData();
@@ -152,7 +152,7 @@ export const useChatStore = create<ChatState>()(
             uploadForm.append("signature", signature);
             uploadForm.append("publicKey", publicKey);
 
-            const ikRes = await fetch(`${urlEndpoint}/api/v1/files/upload`, {
+            const ikRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
               method: "POST",
               body: uploadForm,
             });
