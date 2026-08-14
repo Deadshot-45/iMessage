@@ -19,7 +19,7 @@ export function IOSSpinner({ className = "" }: { className?: string }) {
 
 export function LoadingScreen() {
   return (
-    <div className="imessage-container flex h-screen w-screen flex-col items-center justify-center bg-background text-foreground transition-all duration-300">
+    <div className="fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-center bg-background text-foreground transition-all duration-300">
       <div className="flex flex-col items-center gap-4">
         {/* Pulsating logo/icon */}
         <div className="relative flex items-center justify-center">
