@@ -66,17 +66,17 @@ export function normalizeApiError(error: unknown): ApiError {
 }
 
 const getBaseUrl = () => {
-  const envUrl = import.meta.env.CLIENT_URL?.replace(/\/$/, "");
-  return envUrl ?? "http://localhost:3000";
+  const envUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
+  return envUrl ?? "http://localhost:3000/api";
 };
 
 const BASE_URL = getBaseUrl();
-
 /**
  * Custom Axios Instance
  */
 export const api = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
