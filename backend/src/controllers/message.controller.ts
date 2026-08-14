@@ -187,7 +187,7 @@ const sendMessage = async (req: Request, res: Response) => {
       receiverId,
       message,
       mediaUrl,
-      mediaType,
+      mediaType: mediaType || undefined,
       thumbnailUrl: mediathumbnailUrl,
     });
     await newMessage.save();
