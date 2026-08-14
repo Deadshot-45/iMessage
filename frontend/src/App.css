@@ -950,10 +950,14 @@ input:checked + .slider:before {
   }
 
   .imessage-window {
-    height: 100vh;
-    max-height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
     border: none;
+  }
+
+  .chat-input-area {
+    padding: 8px 12px;
   }
 
   .back-btn {

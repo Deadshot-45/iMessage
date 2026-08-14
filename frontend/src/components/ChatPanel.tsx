@@ -41,10 +41,15 @@ export function ChatPanel({
     }
   };
 
-  // Auto scroll to bottom of thread
+  // Auto scroll to bottom of thread with layout rendering buffer
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChat?.messages, isTyping]);
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+    scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
+  }, [activeChat?.messages?.length, isTyping]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -126,12 +131,14 @@ export function ChatPanel({
                             src={msg.mediaUrl}
                             controls
                             className="max-w-full max-h-[200px] rounded-lg"
+                            onLoadedData={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })}
                           />
                         ) : (
                           <img
                             src={msg.mediaUrl}
                             alt="Attached media"
                             className="max-w-full max-h-[200px] object-cover rounded-lg"
+                            onLoad={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })}
                           />
                         )}
                       </div>
