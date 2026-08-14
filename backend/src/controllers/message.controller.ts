@@ -22,6 +22,11 @@ const getConversations = async (req: Request, res: Response) => {
         },
       },
       {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+      {
         $group: {
           _id: {
             $cond: {
@@ -30,14 +35,14 @@ const getConversations = async (req: Request, res: Response) => {
               else: "$senderId",
             },
           },
-          latestMessage: {
-            $max: "$createdAt",
+          lastMessage: {
+            $first: "$$ROOT",
           },
         },
       },
       {
         $sort: {
-          latestMessage: -1,
+          "lastMessage.createdAt": -1,
         },
       },
       {
@@ -49,17 +54,21 @@ const getConversations = async (req: Request, res: Response) => {
         },
       },
       {
-        $replaceRoot: {
-          newRoot: { $first: "$user" },
-        },
+        $unwind: "$user",
       },
       {
         $project: {
-          clerkId: 0,
-          password: 0,
-          updatedAt: 0,
-          createdAt: 0,
-          __v: 0,
+          _id: 1,
+          username: "$user.username",
+          fullName: "$user.fullName",
+          email: "$user.email",
+          profilePic: "$user.profilePic",
+          lastMessage: {
+            message: "$lastMessage.message",
+            createdAt: "$lastMessage.createdAt",
+            mediaUrl: "$lastMessage.mediaUrl",
+            mediaType: "$lastMessage.mediaType",
+          },
         },
       },
     ]);
