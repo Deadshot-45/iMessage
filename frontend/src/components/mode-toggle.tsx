@@ -30,7 +30,7 @@ export function ModeToggle({ className }: ModeToggleProps) {
     >
       {/* Sliding background circle */}
       <div 
-        className="absolute top-0.5 left-0.5 w-[28px] h-[28px] rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
+        className="absolute top-0 left-0.5 w-[28px] h-[28px] rounded-full bg-white dark:bg-zinc-700/90 shadow-sm border border-black/4 dark:border-white/4 transition-all duration-200 ease-out"
         style={{
           transform: `translateX(${activeIndex * 24}px)`,
         }}
