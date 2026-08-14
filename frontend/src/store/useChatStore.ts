@@ -138,34 +138,64 @@ export const useChatStore = create<ChatState>()(
           let uploadedMediaType = "";
 
           if (chatMedia) {
-            // Step 1: Fetch a short-lived auth token from backend (fast, no file transfer)
-            const authRes = await axiosInstance.get("/message/upload-auth");
-            const { token, expire, signature, publicKey } = authRes.data;
+            let usedDirectUpload = false;
 
-            // Step 2: Upload directly to ImageKit CDN (bypasses Express server entirely)
-            const uploadForm = new FormData();
-            uploadForm.append("file", chatMedia);
-            uploadForm.append("fileName", `chat-${Date.now()}-${chatMedia.name}`);
-            uploadForm.append("folder", "chat_media");
-            uploadForm.append("token", token);
-            uploadForm.append("expire", String(expire));
-            uploadForm.append("signature", signature);
-            uploadForm.append("publicKey", publicKey);
+            try {
+              // Step 1: Fetch a short-lived auth token from backend
+              const authRes = await axiosInstance.get("/message/upload-auth");
+              const { token, expire, signature, publicKey } = authRes.data;
 
-            const ikRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-              method: "POST",
-              body: uploadForm,
-            });
+              // Only attempt direct upload if we have a valid public key
+              if (publicKey) {
+                // Step 2: Upload directly to ImageKit CDN (bypasses Express server entirely)
+                const uploadForm = new FormData();
+                uploadForm.append("file", chatMedia);
+                uploadForm.append("fileName", `chat-${Date.now()}-${chatMedia.name}`);
+                uploadForm.append("folder", "chat_media");
+                uploadForm.append("token", token);
+                uploadForm.append("expire", String(expire));
+                uploadForm.append("signature", signature);
+                uploadForm.append("publicKey", publicKey);
 
-            if (!ikRes.ok) {
-              throw new Error(`ImageKit upload failed: ${ikRes.status}`);
+                const ikRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+                  method: "POST",
+                  body: uploadForm,
+                });
+
+                if (ikRes.ok) {
+                  const ikData = await ikRes.json();
+                  uploadedMediaUrl = ikData.url;
+                  uploadedMediaType = chatMedia.type.startsWith("video/") ? "video" : "image";
+                  usedDirectUpload = true;
+                }
+              }
+            } catch (uploadErr) {
+              console.warn("Direct upload failed, falling back to server-side upload:", uploadErr);
             }
-            const ikData = await ikRes.json();
-            uploadedMediaUrl = ikData.url;
-            uploadedMediaType = chatMedia.type.startsWith("video/") ? "video" : "image";
+
+            if (!usedDirectUpload) {
+              // Fallback: send raw file through Express (server handles ImageKit upload)
+              const formData = new FormData();
+              formData.append("message", message);
+              formData.append("chatMedia", chatMedia);
+              const fallbackRes = await axiosInstance.post(
+                `/message/send/${userId}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" }, timeout: 0 }
+              );
+              const newMsg = fallbackRes.data.newMessage;
+              if (newMsg) {
+                set({
+                  messages: get().messages.map((msg) =>
+                    msg._id === optimisticId ? { ...newMsg, status: "sent" } : msg
+                  ),
+                });
+              }
+              return; // handled via fallback, skip the JSON post below
+            }
           }
 
-          // Step 3: Tell backend to save the message record with the CDN URL
+          // Step 3: Tell backend to save the message record with the CDN URL (direct upload path)
           const res = await axiosInstance.post(`/message/send/${userId}`, {
             message,
             ...(uploadedMediaUrl && { mediaUrl: uploadedMediaUrl, mediaType: uploadedMediaType }),
