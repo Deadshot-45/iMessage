@@ -66,12 +66,13 @@ export function normalizeApiError(error: unknown): ApiError {
 }
 
 const getBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
-  return envUrl ?? "http://localhost:3000/api";
+  return import.meta.env.DEV
+    ? "http://localhost:3000/api"
+    : "/api";
 };
 
 const BASE_URL = getBaseUrl();
-console.log(import.meta.env.VITE_API_URL);
+console.log("BASE_URL : ", BASE_URL, import.meta.env.MODE);
 /**
  * Custom Axios Instance
  */

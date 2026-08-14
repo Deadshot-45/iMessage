@@ -15,8 +15,9 @@ interface AuthState {
   disconnectSocket: () => void;
 }
 
-const baseURL =
-  import.meta.env.MODE === "development" ? "http://localhost:3000/" : "/";
+const baseURL = import.meta.env.DEV
+  ? "http://localhost:3000/api"
+  : "/api";
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   authUser: null,
