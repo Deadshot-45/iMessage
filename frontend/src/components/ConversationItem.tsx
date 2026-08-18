@@ -6,6 +6,7 @@ interface ConversationItemProps {
   isActive: boolean;
   isTyping: boolean;
   isMuted: boolean;
+  isMessageDisable?: boolean ;
   onClick: () => void;
 }
 
@@ -14,6 +15,7 @@ export function ConversationItem({
   isActive,
   isTyping,
   isMuted,
+  isMessageDisable = true,
   onClick,
 }: ConversationItemProps) {
   const lastMessage = conv.messages[conv.messages.length - 1];
@@ -21,6 +23,9 @@ export function ConversationItem({
     .split(" ")
     .map((n) => n[0])
     .join("");
+
+  const unreadCount = conv.unreadCount || 0;
+  const showUnreadBadge = unreadCount > 0 && !isActive;
 
   return (
     <div
@@ -37,12 +42,19 @@ export function ConversationItem({
       <div className="conv-details">
         <div className="conv-meta">
           <h3 className="conv-name">{conv.name}</h3>
-          <span className="conv-time">{lastMessage ? lastMessage.timestamp : ""}</span>
+          <span className="conv-time">
+            {lastMessage ? lastMessage.timestamp : ""}
+          </span>
         </div>
         <div className="conv-last-msg-container">
+          {isMessageDisable && 
           <p className="conv-last-msg">
             {isTyping ? (
-              <span style={{ color: "var(--imessage-blue)", fontWeight: "500" }}>typing...</span>
+              <span
+                style={{ color: "var(--imessage-blue)", fontWeight: "500" }}
+              >
+                typing...
+              </span>
             ) : lastMessage ? (
               (() => {
                 const prefix = lastMessage.sender === "me" ? "You: " : "";
@@ -50,7 +62,10 @@ export function ConversationItem({
                   return (
                     <span className="flex items-center gap-1">
                       {prefix && <span>{prefix}</span>}
-                      <ImageIcon size={12} className="inline shrink-0 opacity-70" />
+                      <ImageIcon
+                        size={12}
+                        className="inline shrink-0 opacity-70"
+                      />
                       <span>Photo</span>
                     </span>
                   );
@@ -69,9 +84,20 @@ export function ConversationItem({
             ) : (
               "No messages yet"
             )}
-          </p>
-          {isMuted && <Bell size={12} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
-          {conv.unread && <div className="unread-dot" />}
+          </p>}
+          {isMuted && (
+            <Bell
+              size={12}
+              style={{ color: "var(--text-muted)", flexShrink: 0 }}
+            />
+          )}
+          {showUnreadBadge ? (
+            <span className="unread-count-badge">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          ) : conv.unread && !isActive ? (
+            <div className="unread-dot" />
+          ) : null}
         </div>
       </div>
     </div>

@@ -24,3 +24,5 @@ lerna-debug.log*
 *.sw?
 
 *.env
+
+stitch_file_to_web_design_generator

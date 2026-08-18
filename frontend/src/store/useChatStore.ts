@@ -2,13 +2,20 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
+import { soundManager } from "../lib/sound";
 
 interface ChatState {
   users: any[];
+  friends: any[];
+  friendRequests: any[];
+  searchResults: any[];
   conversations: any[];
   messages: any[];
   selectUser: any;
   isUserLoading: boolean;
+  isFriendsLoading: boolean;
+  isRequestsLoading: boolean;
+  isSearching: boolean;
   isConversationsLoading: boolean;
   isMessagesLoading: boolean;
   activeChatId: string | number | null;
@@ -26,11 +33,28 @@ interface ChatState {
   setIsSoundEnabled: (enabled: boolean) => void;
   setSendingMedia: (sending: boolean) => void;
   getUsers: () => Promise<void>;
+  getFriends: () => Promise<void>;
+  getFriendRequests: () => Promise<void>;
+  addIncomingFriendRequest: (request: any) => void;
+  searchUser: (query: string) => Promise<void>;
+  sendFriendRequest: (targetUserId: string) => Promise<boolean>;
+  respondToFriendRequest: (
+    requestId: string,
+    status: "accepted" | "declined",
+  ) => Promise<void>;
+  removeFriend: (userId: string) => Promise<void>;
   getConversations: () => Promise<void>;
   getMessages: (userId: string | number) => Promise<void>;
+  markMessagesAsRead: (senderId: string | number) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   sendMessage: (
     userId: string | number,
-    messageData: { message: string; chatMedia?: File },
+    messageData: {
+      message: string;
+      chatMedia?: File;
+      mediaType?: string;
+      thumbnailUrl?: string;
+    },
   ) => Promise<void>;
   setActiveChatId: (id: string | number | null) => void;
   addMessage: (message: any) => void;
@@ -42,10 +66,16 @@ export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
       users: [],
+      friends: [],
+      friendRequests: [],
+      searchResults: [],
       conversations: [],
       messages: [],
       selectUser: null,
       isUserLoading: false,
+      isFriendsLoading: false,
+      isRequestsLoading: false,
+      isSearching: false,
       isConversationsLoading: false,
       isMessagesLoading: false,
       activeChatId: null,
@@ -64,15 +94,116 @@ export const useChatStore = create<ChatState>()(
       },
 
       getUsers: async () => {
-        set({ isUserLoading: true });
+        return get().getFriends();
+      },
+
+      getFriends: async () => {
+        set({ isFriendsLoading: true, isUserLoading: true });
         try {
-          const res = await axiosInstance.get("/users");
-          console.log(res.data);
-          set({ users: res.data.users || [] });
+          const res = await axiosInstance.get("/friends");
+          const friendsList = res.data.friends || [];
+          set({ friends: friendsList, users: friendsList });
         } catch (error) {
-          console.error("Error fetching users:", error);
+          console.error("Error fetching friends:", error);
         } finally {
-          set({ isUserLoading: false });
+          set({ isFriendsLoading: false, isUserLoading: false });
+        }
+      },
+
+      getFriendRequests: async () => {
+        set({ isRequestsLoading: true });
+        try {
+          const res = await axiosInstance.get("/friends/requests");
+          set({ friendRequests: res.data.requests || [] });
+        } catch (error) {
+          console.error("Error fetching friend requests:", error);
+        } finally {
+          set({ isRequestsLoading: false });
+        }
+      },
+
+      addIncomingFriendRequest: (newReq: any) => {
+        if (!newReq || !newReq._id) return;
+        const exists = get().friendRequests.some((r) => r._id === newReq._id);
+        if (!exists) {
+          set({ friendRequests: [newReq, ...get().friendRequests] });
+        }
+      },
+
+      searchUser: async (query: string) => {
+        console.log("second, ", query);
+        if (!query.trim() || query.trim().length < 3) {
+          set({ searchResults: [] });
+          return;
+        }
+        set({ isSearching: true, isUserLoading: true });
+        try {
+          const res = await axiosInstance.get(
+            `/users/search?q=${encodeURIComponent(query.trim())}`,
+          );
+          console.log("first, ", res.data);
+          const results = res.data.users || [];
+          set({ searchResults: results, users: results });
+        } catch (error) {
+          console.error("Error searching users:", error);
+          set({ searchResults: [] });
+        } finally {
+          set({ isSearching: false, isUserLoading: false });
+        }
+      },
+
+      sendFriendRequest: async (targetUserId: string) => {
+        try {
+          await axiosInstance.post(`/friends/request/${targetUserId}`);
+          // Update search results or status locally
+          set({
+            searchResults: get().searchResults.map((u) =>
+              u._id === targetUserId
+                ? { ...u, relationship: "pending_sent" }
+                : u,
+            ),
+            users: get().users.map((u) =>
+              u._id === targetUserId
+                ? { ...u, relationship: "pending_sent" }
+                : u,
+            ),
+          });
+          return true;
+        } catch (error) {
+          console.error("Error sending friend request:", error);
+          return false;
+        }
+      },
+
+      respondToFriendRequest: async (
+        requestId: string,
+        status: "accepted" | "declined",
+      ) => {
+        try {
+          await axiosInstance.patch(`/friends/respond/${requestId}`, { status });
+          // Remove request from pending list
+          set({
+            friendRequests: get().friendRequests.filter(
+              (r) => r._id !== requestId,
+            ),
+          });
+          // If accepted, refresh friends & conversations
+          if (status === "accepted") {
+            await get().getFriends();
+            await get().getConversations();
+          }
+        } catch (error) {
+          console.error("Error responding to friend request:", error);
+        }
+      },
+
+      removeFriend: async (userId: string) => {
+        try {
+          await axiosInstance.delete(`/friends/${userId}`);
+          await get().getFriends();
+          await get().getConversations();
+        } catch (error) {
+          console.error("Error removing friend:", error);
         }
       },
 
@@ -107,6 +238,8 @@ export const useChatStore = create<ChatState>()(
         try {
           const res = await axiosInstance.get(`/message/${userId}`);
           set({ messages: res.data.conversations || [] });
+          // Mark received messages as read
+          get().markMessagesAsRead(userId);
         } catch (error) {
           console.error("Error fetching messages:", error);
         } finally {
@@ -114,40 +247,90 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
-      sendMessage: async (userId, { message, chatMedia }) => {
-        // Create a temporary optimistic message to show instantly
+      markMessagesAsRead: async (senderId) => {
+        if (!senderId) return;
+        try {
+          await axiosInstance.patch(`/message/read/${senderId}`);
+          // Update status in local message store and conversation list
+          set({
+            messages: get().messages.map((m) =>
+              String(m.senderId) === String(senderId) && m.status !== "seen"
+                ? { ...m, status: "seen" }
+                : m,
+            ),
+            conversations: get().conversations.map((c) =>
+              String(c._id) === String(senderId)
+                ? { ...c, unreadCount: 0 }
+                : c,
+            ),
+          });
+        } catch (error) {
+          console.error("Error marking messages as read:", error);
+        }
+      },
+
+      deleteMessage: async (messageId) => {
+        if (!messageId) return;
+        try {
+          await axiosInstance.delete(`/message/${messageId}`);
+          set({
+            messages: get().messages.map((m) =>
+              m._id === messageId
+                ? {
+                    ...m,
+                    isDeleted: true,
+                    message: "This message was deleted",
+                    mediaUrl: "",
+                    thumbnailUrl: "",
+                  }
+                : m,
+            ),
+          });
+        } catch (error) {
+          console.error("Error deleting message:", error);
+        }
+      },
+
+      sendMessage: async (userId, { message, chatMedia, mediaType: directMediaType, thumbnailUrl: directThumb }) => {
         const optimisticId = `optimistic-${Date.now()}`;
+        
+        let determinedMediaType = directMediaType;
+        if (!determinedMediaType && chatMedia) {
+          if (chatMedia.type.startsWith("image/")) determinedMediaType = chatMedia.type.includes("gif") ? "gif" : "image";
+          else if (chatMedia.type.startsWith("video/")) determinedMediaType = "video";
+          else if (chatMedia.type.startsWith("audio/")) determinedMediaType = "audio";
+        }
+
         const optimisticMsg = {
           _id: optimisticId,
           senderId: useAuthStore.getState().authUser?._id || "",
           receiverId: userId,
           message: message || "",
           mediaUrl: chatMedia ? URL.createObjectURL(chatMedia) : undefined,
-          mediaType: chatMedia ? (chatMedia.type.startsWith("video/") ? "video" : "image") : undefined,
+          mediaType: determinedMediaType,
+          thumbnailUrl: directThumb,
+          mediaSize: chatMedia?.size,
           createdAt: new Date().toISOString(),
           status: "sending" as const,
         };
 
-        // Append optimistically to show text/preview instantly
+        // Append optimistically
         set({ messages: [...get().messages, optimisticMsg] });
 
         try {
           if (chatMedia) set({ sendingMedia: true });
 
           let uploadedMediaUrl = "";
-          let uploadedMediaType = "";
+          let uploadedMediaType = determinedMediaType || "";
 
           if (chatMedia) {
             let usedDirectUpload = false;
 
             try {
-              // Step 1: Fetch a short-lived auth token from backend
               const authRes = await axiosInstance.get("/message/upload-auth");
               const { token, expire, signature, publicKey } = authRes.data;
 
-              // Only attempt direct upload if we have a valid public key
               if (publicKey) {
-                // Step 2: Upload directly to ImageKit CDN (bypasses Express server entirely)
                 const uploadForm = new FormData();
                 uploadForm.append("file", chatMedia);
                 uploadForm.append("fileName", `chat-${Date.now()}-${chatMedia.name}`);
@@ -165,19 +348,19 @@ export const useChatStore = create<ChatState>()(
                 if (ikRes.ok) {
                   const ikData = await ikRes.json();
                   uploadedMediaUrl = ikData.url;
-                  uploadedMediaType = chatMedia.type.startsWith("video/") ? "video" : "image";
                   usedDirectUpload = true;
                 }
               }
             } catch (uploadErr) {
-              console.warn("Direct upload failed, falling back to server-side upload:", uploadErr);
+              console.warn("Direct upload fallback:", uploadErr);
             }
 
             if (!usedDirectUpload) {
-              // Fallback: send raw file through Express (server handles ImageKit upload)
               const formData = new FormData();
               formData.append("message", message);
               formData.append("chatMedia", chatMedia);
+              if (determinedMediaType) formData.append("mediaType", determinedMediaType);
+              
               const fallbackRes = await axiosInstance.post(
                 `/message/send/${userId}`,
                 formData,
@@ -187,32 +370,32 @@ export const useChatStore = create<ChatState>()(
               if (newMsg) {
                 set({
                   messages: get().messages.map((msg) =>
-                    msg._id === optimisticId ? { ...newMsg, status: "sent" } : msg
+                    msg._id === optimisticId ? newMsg : msg
                   ),
                 });
               }
-              return; // handled via fallback, skip the JSON post below
+              return;
             }
           }
 
-          // Step 3: Tell backend to save the message record with the CDN URL (direct upload path)
+          // Step 3: Tell backend to save the message record with the CDN URL
           const res = await axiosInstance.post(`/message/send/${userId}`, {
             message,
             ...(uploadedMediaUrl && { mediaUrl: uploadedMediaUrl, mediaType: uploadedMediaType }),
+            ...(directThumb && { thumbnailUrl: directThumb }),
+            mediaSize: chatMedia?.size,
           });
 
           const newMsg = res.data.newMessage;
           if (newMsg) {
-            // Replace optimistic message with the actual backend saved record
             set({
               messages: get().messages.map((msg) =>
-                msg._id === optimisticId ? { ...newMsg, status: "sent" } : msg
+                msg._id === optimisticId ? newMsg : msg
               ),
             });
           }
         } catch (error) {
           console.error("Error sending message:", error);
-          // Mark the optimistic message as failed
           set({
             messages: get().messages.map((msg) =>
               msg._id === optimisticId ? { ...msg, status: "error" } : msg
@@ -228,23 +411,64 @@ export const useChatStore = create<ChatState>()(
         if (!userId) return;
         const socket = useAuthStore.getState().socket;
         if (!socket) return;
+        
         socket.off("new:message");
+        socket.off("message:read");
+        socket.off("message:deleted");
+
         socket.on(
           "new:message",
-          (newMessage: { senderId: string; message: string }) => {
-            // if im not the receiver don't do anything just return
+          (newMessage: any) => {
             if (String(newMessage.senderId) !== String(userId)) return;
 
-            set({ messages: [...get().messages, newMessage] });
+            if (get().isSoundEnabled) {
+              soundManager.playNotificationSound();
+            }
 
+            set({ messages: [...get().messages, newMessage] });
+            get().markMessagesAsRead(userId);
             get().getConversations();
           },
+        );
+
+        // When the other user views messages, upgrade all outbound messages to "seen" (Double Blue Tick)
+        socket.on(
+          "message:read",
+          (_data: { conversationUserId: string; readAt: string }) => {
+            set({
+              messages: get().messages.map((m) =>
+                m.status !== "seen" ? { ...m, status: "seen" } : m
+              ),
+            });
+          }
+        );
+
+        // When a message is deleted for everyone
+        socket.on(
+          "message:deleted",
+          (data: { messageId: string }) => {
+            set({
+              messages: get().messages.map((m) =>
+                m._id === data.messageId
+                  ? {
+                      ...m,
+                      isDeleted: true,
+                      message: "This message was deleted",
+                      mediaUrl: "",
+                      thumbnailUrl: "",
+                    }
+                  : m
+              ),
+            });
+          }
         );
       },
 
       unsubscribeFromMessages: () => {
         const socket = useAuthStore.getState().socket;
-        socket?.off("newMessage");
+        socket?.off("new:message");
+        socket?.off("message:read");
+        socket?.off("message:deleted");
       },
 
       setActiveChatId: (id) => {

@@ -15,9 +15,21 @@ interface AuthState {
   disconnectSocket: () => void;
 }
 
-const baseURL = import.meta.env.DEV
-  ? "http://localhost:3000"
-  : typeof window !== "undefined" ? window.location.origin : "/";
+const getSocketBaseURL = () => {
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+  if (import.meta.env.DEV) {
+    const hostname =
+      typeof window !== "undefined" && window.location.hostname
+        ? window.location.hostname
+        : "localhost";
+    return `http://${hostname}:3000`;
+  }
+  return typeof window !== "undefined" ? window.location.origin : "/";
+};
+
+const baseURL = getSocketBaseURL();
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   authUser: null,
