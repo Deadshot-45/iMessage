@@ -13,6 +13,12 @@ export function AuthActionPanel() {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [error, setError] = useState({
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+  });
 
   // Consolidated validation hook & debounced username check
   const { checkPassword, checkEmail, checkFullName } = useValidation();
@@ -42,7 +48,9 @@ export function AuthActionPanel() {
       }
 
       if (usernameStatus && !usernameStatus.available) {
-        toast.error(usernameStatus.message || "Please choose a different username");
+        toast.error(
+          usernameStatus.message || "Please choose a different username",
+        );
         return;
       }
 
@@ -69,11 +77,16 @@ export function AuthActionPanel() {
       }
     } else {
       if (!identifier.trim()) {
-        toast.error("Please enter your email or username");
+        setError({ ...error, name: "Please enter your email or username" });
         return;
       }
       if (!password) {
-        toast.error("Please enter your password");
+        setError({ ...error, password: "Please enter your password" });
+        return;
+      }
+      const passwordError = checkPassword(password);
+      if (typeof passwordError === "string") {
+        setError({ ...error, password: passwordError });
         return;
       }
 
@@ -207,6 +220,9 @@ export function AuthActionPanel() {
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full px-4 py-3.5 text-xs bg-white dark:bg-zinc-800/80 border border-gray-200/90 dark:border-zinc-700/80 rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 />
+                {error.username && (
+                  <p className="text-red-500 mt-2! text-xs">{error.username}</p>
+                )}
               </div>
 
               <div className="w-full">
@@ -219,6 +235,9 @@ export function AuthActionPanel() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3.5 text-xs bg-white dark:bg-zinc-800/80 border border-gray-200/90 dark:border-zinc-700/80 rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 />
+                {error.password && (
+                  <p className="text-red-500 mt-2! text-xs">{error.password}</p>
+                )}
               </div>
             </>
           )}

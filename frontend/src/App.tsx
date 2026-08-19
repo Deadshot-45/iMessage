@@ -1,7 +1,8 @@
-import { lazy } from "react";
+import { lazy, useEffect } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { SuspenseLoader } from "./components/SuspenseLoader";
 import { Toaster } from "react-hot-toast";
+import { useAuthStore } from "./store/useAuthStore";
 
 import "./App.css";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -32,6 +33,12 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
     <>
       <RouterProvider router={router} />
@@ -49,7 +56,8 @@ function App() {
             padding: "12px 18px",
             fontSize: "13px",
             fontWeight: 500,
-            boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05)",
+            boxShadow:
+              "0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05)",
             fontFamily: "var(--font-apple)",
             letterSpacing: "-0.1px",
           },
