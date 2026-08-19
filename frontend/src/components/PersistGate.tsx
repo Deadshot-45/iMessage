@@ -11,26 +11,22 @@ export const PersistGate: React.FC<PersistGateProps> = ({
   loading = null,
   store,
 }) => {
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(
+    () => !store?.persist || store.persist.hasHydrated(),
+  );
 
   useEffect(() => {
-    // If the store is not using persist middleware, bypass
-    if (!store?.persist) {
-      setIsHydrated(true);
-      return;
+    if (!store?.persist) return;
+
+    if (!store.persist.hasHydrated()) {
+      const unsubFinishHydration = store.persist.onFinishHydration(() => {
+        setIsHydrated(true);
+      });
+
+      return () => {
+        unsubFinishHydration();
+      };
     }
-
-    // Set initial state
-    setIsHydrated(store.persist.hasHydrated());
-
-    // Listen for hydration finish
-    const unsubFinishHydration = store.persist.onFinishHydration(() => {
-      setIsHydrated(true);
-    });
-
-    return () => {
-      unsubFinishHydration();
-    };
   }, [store]);
 
   if (!isHydrated) {

@@ -1,4 +1,3 @@
-import { ModeToggle } from "./mode-toggle";
 import { AuthHeroPanel } from "./auth/AuthHeroPanel";
 import { AuthActionPanel } from "./auth/AuthActionPanel";
 import { useAuth } from "@clerk/react";
@@ -43,6 +42,3 @@ const LockScreen = () => {
 };
 
 export default LockScreen;
-
-
-
