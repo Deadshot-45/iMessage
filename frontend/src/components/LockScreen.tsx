@@ -1,8 +1,6 @@
 import { ModeToggle } from "./mode-toggle";
 import { AuthHeroPanel } from "./auth/AuthHeroPanel";
 import { AuthActionPanel } from "./auth/AuthActionPanel";
-import { WallpaperToggle } from "./wallpaper-toggle";
-import { AccentToggle } from "./accent-toggle";
 import { useAuth } from "@clerk/react";
 import { Navigate } from "react-router-dom";
 import { LoadingScreen } from "./SuspenseLoader";
@@ -14,34 +12,37 @@ const LockScreen = () => {
 
   if (!isLoaded) return <LoadingScreen />;
   if (isSignedIn) return <Navigate to="/" replace />;
+
   return (
-    <main className="imessage-window mx-auto flex w-full max-w-md md:max-w-[1180px] flex-1 flex-col overflow-hidden text-foreground">
-      <nav className="w-full border-b border-border p-3">
-        <section className="flex items-center justify-between gap-4">
-          <article className="flex items-center gap-2">
-            <img src="/logo.png" alt="logo" className="size-8" />
-            <div>
-              <p className="text-foreground text-sm! mx-0! font-bold">{APP_NAME}</p>
-              <p className="text-muted-foreground text-xs! mx-0! font-medium">
-                Wednesday, 12 August
-              </p>
-            </div>
-          </article>
-          <div className="flex items-center gap-1.5">
-            <WallpaperToggle />
-            <AccentToggle />
-            <ModeToggle />
-          </div>
-        </section>
-      </nav>
-      <main className="relative flex flex-1 flex-col bg-background overflow-y-auto md:overflow-hidden md:flex-row">
-        <AuthHeroPanel />
+    <main className="imessage-container relative flex w-full min-h-screen md:h-screen flex-1 flex-col md:flex-row overflow-y-auto md:overflow-hidden text-foreground bg-[#FAFAFC] dark:bg-[#121214]">
+      <div className="imessage-window">
+        {/* Top Left Traffic Lights */}
+        <div className="absolute top-6 left-6 z-30 flex items-center gap-2">
+          <div
+            className="size-3 rounded-full bg-[#FF5F56] border border-black/10 shadow-xs cursor-pointer hover:brightness-90 transition-all"
+            title="Close"
+          />
+          <div
+            className="size-3 rounded-full bg-[#FFBD2E] border border-black/10 shadow-xs cursor-pointer hover:brightness-90 transition-all"
+            title="Minimize"
+          />
+          <div
+            className="size-3 rounded-full bg-[#27C93F] border border-black/10 shadow-xs cursor-pointer hover:brightness-90 transition-all"
+            title="Maximize"
+          />
+        </div>
+
+        {/* Left Column: Sign In Form Card */}
         <AuthActionPanel />
-      </main>
+
+        {/* Right Column: Sequoia Glass Preview Message Thread */}
+        <AuthHeroPanel />
+      </div>
     </main>
   );
 };
 
 export default LockScreen;
+
 
 

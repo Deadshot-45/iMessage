@@ -28,6 +28,8 @@ interface ChatPanelProps {
   setShowDetails: (show: boolean) => void;
   selectedFile: File | null;
   setSelectedFile: (file: File | null) => void;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export function ChatPanel({
@@ -41,6 +43,8 @@ export function ChatPanel({
   setShowDetails,
   selectedFile,
   setSelectedFile,
+  isSidebarOpen = true,
+  onToggleSidebar,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,15 +89,16 @@ export function ChatPanel({
 
   if (!activeChat) {
     return (
-      <div className="imessage-chat-pane">
-        <div className="empty-state" style={{ height: "100%" }}>
-          <div className="empty-state-logo">
-            <MessageSquare size={44} />
+      <div className="w-full h-full bg-white/75 dark:bg-[#1A1C20]/85 backdrop-blur-3xl rounded-[26px] border border-white/40 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden items-center justify-center p-8 select-none">
+        <div className="flex flex-col items-center gap-3 text-center max-w-sm">
+          <div className="size-16 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center shadow-inner">
+            <MessageSquare size={36} />
           </div>
-          <h3 className="empty-state-title">Select a Conversation</h3>
-          <p className="empty-state-desc">
-            Choose a friend from the list or search for contacts to begin
-            messaging.
+          <h3 className="text-lg font-bold text-foreground">
+            Select a Conversation
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Choose a friend from the list or search for contacts to begin messaging.
           </p>
         </div>
       </div>
@@ -106,7 +111,7 @@ export function ChatPanel({
     .join("");
 
   return (
-    <div className="imessage-chat-pane">
+    <div className="w-full h-full bg-white/75 dark:bg-[#1A1C20]/85 backdrop-blur-3xl rounded-[26px] border border-white/40 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden select-none relative">
       {/* Fullscreen Media Lightbox */}
       {lightboxMedia && (
         <MediaViewerModal
@@ -117,50 +122,102 @@ export function ChatPanel({
         />
       )}
 
-      {/* Chat Header */}
-      <div className="chat-header">
-        <button className="back-btn" onClick={onBack}>
-          <ChevronLeft size={24} />
-          <span style={{ fontSize: "15px", fontWeight: "500" }}>Back</span>
-        </button>
-
-        <div
-          typeof="button"
-          className="flex gap-2 items-center justify-center cursor-pointer"
-          onClick={() => setShowDetails(!showDetails)}
-        >
-          <div
-            className="chat-header-avatar"
-            style={{ backgroundColor: activeChat.avatarColor }}
+      {/* Chat Header (Sequoia Glass) */}
+      <div className="px-5 py-3.5 border-b border-black/[0.06] dark:border-white/[0.08] flex justify-between items-center bg-transparent shrink-0">
+        <div className="flex items-center gap-2">
+          {/* Mobile Back button */}
+          <button
+            type="button"
+            className="md:hidden flex items-center gap-1 text-xs font-semibold text-primary hover:opacity-80 bg-transparent border-0 cursor-pointer p-1"
+            onClick={onBack}
           >
-            {initials}
-          </div>
-          <div className="flex flex-col items-start pt-2">
-            <span className="text-xs font-semibold">{activeChat.name}</span>
-            <span className="flex items-center text-[12px] text-muted-foreground">
-              {activeChat.status}
-              <Info size={11} style={{ marginLeft: "2px" }} />
-            </span>
+            <ChevronLeft size={20} />
+            <span>Back</span>
+          </button>
+
+          {/* Desktop/Tablet Sidebar Toggle button */}
+          {onToggleSidebar && (
+            <button
+              type="button"
+              className="hidden md:flex p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors border-0 bg-transparent cursor-pointer"
+              onClick={onToggleSidebar}
+              title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
+            >
+              <ChevronLeft
+                size={18}
+                className={`transition-transform duration-200 ${
+                  isSidebarOpen ? "" : "rotate-180"
+                }`}
+              />
+            </button>
+          )}
+
+          {/* Contact info clickable to open details */}
+          <div
+            role="button"
+            tabIndex={0}
+            className="flex flex-col items-start cursor-pointer select-none group"
+            onClick={() => setShowDetails(!showDetails)}
+          >
+            <h2 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+              {activeChat.name}
+            </h2>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span
+                className={`size-1.5 rounded-full ${
+                  activeChat.status === "Online"
+                    ? "bg-emerald-500"
+                    : "bg-zinc-400"
+                }`}
+              />
+              <span
+                className={`text-[11px] ${
+                  activeChat.status === "Online"
+                    ? "text-emerald-500 font-medium"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {activeChat.status}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "14px",
-            color: "var(--imessage-blue)",
-          }}
-        >
-          <Phone
-            size={18}
-            style={{ cursor: "pointer" }}
-            onClick={() => alert("Calling...")}
-          />
-          <Video
-            size={20}
-            style={{ cursor: "pointer" }}
-            onClick={() => alert("Starting video call...")}
-          />
+        {/* Right Header Action Icons */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-primary transition-colors border-0 bg-transparent cursor-pointer"
+            onClick={() =>
+              alert(`Starting FaceTime Video with ${activeChat.name}...`)
+            }
+            title="FaceTime Video"
+          >
+            <Video size={19} />
+          </button>
+
+          <button
+            type="button"
+            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-primary transition-colors border-0 bg-transparent cursor-pointer"
+            onClick={() => alert(`Calling ${activeChat.name}...`)}
+            title="Audio Call"
+          >
+            <Phone size={17} />
+          </button>
+
+          {/* Info (i) button */}
+          <button
+            type="button"
+            className={`size-7 rounded-full flex items-center justify-center transition-all cursor-pointer border-0 shadow-xs ${
+              showDetails
+                ? "bg-blue-600 text-white shadow-blue-500/30"
+                : "bg-blue-600/15 hover:bg-blue-600 text-blue-600 hover:text-white dark:bg-blue-500/20 dark:text-blue-400"
+            }`}
+            onClick={() => setShowDetails(!showDetails)}
+            title="Details"
+          >
+            <Info size={14} className="stroke-[2.5]" />
+          </button>
         </div>
       </div>
 
@@ -190,9 +247,19 @@ export function ChatPanel({
               return (
                 <div
                   key={msg.id}
-                  className={`message-row ${isSent ? "sent" : "received"} group`}
+                  className={`message-row ${isSent ? "sent" : "received"} group flex items-end gap-2`}
                 >
-                  <div className="bubble relative flex flex-col gap-1.5 max-w-[260px] sm:max-w-[320px]">
+                  {/* Incoming Contact Avatar */}
+                  {!isSent && (
+                    <div
+                      className="size-7 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0 mb-1 shadow-2xs select-none ring-1 ring-black/5 dark:ring-white/10"
+                      style={{ backgroundColor: activeChat.avatarColor }}
+                    >
+                      {initials}
+                    </div>
+                  )}
+
+                  <div className="bubble relative flex flex-col gap-1.5 max-w-[280px] sm:max-w-[340px]">
                     {/* Media Attachment (Progressive Engine) */}
                     {msg.mediaUrl && (
                       <ProgressiveMedia
@@ -218,14 +285,14 @@ export function ChatPanel({
                       </div>
                     ) : (
                       msg.text && (
-                        <div className="leading-snug break-words pr-2">
+                        <div className="leading-snug break-words pr-1 text-[14.5px]">
                           {msg.text}
                         </div>
                       )
                     )}
 
                     {/* Message Meta: Timestamp & Tick State Machine */}
-                    <div className="flex items-center justify-end gap-1.5 text-[9px] opacity-75 self-end mt-0.5 select-none leading-none">
+                    <div className="flex items-center justify-end gap-1.5 text-[10px] opacity-80 self-end mt-0.5 select-none leading-none">
                       <span>{msg.timestamp}</span>
                       {isSent && !msg.isDeleted && (
                         <span className="flex items-center">
@@ -235,9 +302,9 @@ export function ChatPanel({
                               className="animate-spin text-white/70"
                             />
                           ) : msg.status === "seen" ? (
-                            /* Double Blue Tick */
+                            /* Double Blue / Cyan High-Contrast Tick */
                             <span
-                              className="text-[#007aff] font-bold text-[11px]"
+                              className="text-sky-300 font-bold text-[12px]"
                               style={{ letterSpacing: "-1.5px" }}
                               title="Read"
                             >
@@ -246,30 +313,30 @@ export function ChatPanel({
                           ) : msg.status === "delivered" ? (
                             /* Double Gray Tick */
                             <span
-                              className="text-zinc-400 dark:text-zinc-400 font-semibold text-[11px]"
+                              className="text-white/75 font-semibold text-[12px]"
                               style={{ letterSpacing: "-1.5px" }}
                               title="Delivered"
                             >
                               ✓✓
                             </span>
                           ) : msg.status === "sent" ? (
-                            /* Single Gray Tick */
+                            /* Single Tick */
                             <span
-                              className="text-zinc-400 dark:text-zinc-400 font-semibold text-[11px]"
+                              className="text-white/75 font-semibold text-[12px]"
                               title="Sent"
                             >
                               ✓
                             </span>
                           ) : msg.status === "error" ? (
                             <span
-                              className="text-red-400 font-bold"
+                              className="text-red-300 font-bold"
                               title="Failed to send"
                             >
                               ⚠️
                             </span>
                           ) : (
                             /* Fallback Single Tick */
-                            <span className="text-zinc-400 text-[11px]">✓</span>
+                            <span className="text-white/75 text-[12px]">✓</span>
                           )}
                         </span>
                       )}
@@ -281,21 +348,17 @@ export function ChatPanel({
                         type="button"
                         onClick={() => deleteMessage(String(msg.id))}
                         title="Delete Message"
-                        className="absolute -left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity p-1 bg-transparent border-0 cursor-pointer"
+                        className="absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity p-1 bg-transparent border-0 cursor-pointer"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={13} />
                       </button>
                     )}
                   </div>
 
-                  {showStatus && (
-                    <span className="msg-status">
-                      {msg.status === "seen"
-                        ? "Read"
-                        : msg.status === "delivered"
-                          ? "Delivered"
-                          : "Sent"}
-                    </span>
+                  {showStatus && msg.status === "seen" && (
+                    <div className="self-end mr-2 text-[11px] text-muted-foreground font-medium select-none">
+                      Read {msg.timestamp}
+                    </div>
                   )}
                 </div>
               );

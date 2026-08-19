@@ -26,3 +26,4 @@ lerna-debug.log*
 *.env
 
 stitch_file_to_web_design_generator
+*stitch_file_to_web_design_generator

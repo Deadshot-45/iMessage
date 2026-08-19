@@ -33,7 +33,7 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <div className="imessage-container">
+    <>
       <RouterProvider router={router} />
       <Toaster
         position="top-right"
@@ -42,7 +42,7 @@ function App() {
           className: "!bg-gray-900 !text-white !border !border-gray-700",
         }}
       />
-    </div>
+    </>
   );
 }
 

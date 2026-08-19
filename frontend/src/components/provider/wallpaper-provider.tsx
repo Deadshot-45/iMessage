@@ -11,10 +11,18 @@ export interface Wallpaper {
 export const WALLPAPERS: Wallpaper[] = [
   {
     id: "system",
-    name: "System Default",
+    name: "Sequoia Aurora",
     type: "gradient",
     value: "", // Falls back to default --app-bg
-    thumbnail: "linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)", // visual preview
+    thumbnail: "linear-gradient(135deg, #4ade80 0%, #6366f1 50%, #d946ef 100%)",
+  },
+  {
+    id: "sequoia-neon",
+    name: "Neon Glow",
+    type: "gradient",
+    value:
+      "radial-gradient(ellipse at 15% 10%, rgba(74, 222, 128, 0.85) 0%, transparent 55%), radial-gradient(ellipse at 85% 90%, rgba(217, 70, 239, 0.9) 0%, transparent 60%), radial-gradient(ellipse at 50% 50%, rgba(99, 102, 241, 0.7) 0%, transparent 65%), linear-gradient(135deg, #15803d 0%, #1e1b4b 50%, #4c1d95 100%)",
+    thumbnail: "linear-gradient(135deg, #22c55e 0%, #3b82f6 50%, #a855f7 100%)",
   },
   {
     id: "fluid-abstract",

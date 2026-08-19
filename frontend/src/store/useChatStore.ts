@@ -321,7 +321,7 @@ export const useChatStore = create<ChatState>()(
           if (chatMedia) set({ sendingMedia: true });
 
           let uploadedMediaUrl = "";
-          let uploadedMediaType = determinedMediaType || "";
+          const uploadedMediaType = determinedMediaType || "";
 
           if (chatMedia) {
             let usedDirectUpload = false;

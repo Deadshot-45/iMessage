@@ -47,57 +47,77 @@ export function ConversationItem({
           </span>
         </div>
         <div className="conv-last-msg-container">
-          {isMessageDisable && 
-          <p className="conv-last-msg">
-            {isTyping ? (
-              <span
-                style={{ color: "var(--imessage-blue)", fontWeight: "500" }}
-              >
-                typing...
-              </span>
-            ) : lastMessage ? (
-              (() => {
-                const prefix = lastMessage.sender === "me" ? "You: " : "";
-                if (lastMessage.mediaType === "image") {
-                  return (
-                    <span className="flex items-center gap-1">
-                      {prefix && <span>{prefix}</span>}
-                      <ImageIcon
-                        size={12}
-                        className="inline shrink-0 opacity-70"
-                      />
-                      <span>Photo</span>
-                    </span>
-                  );
-                }
-                if (lastMessage.mediaType === "video") {
-                  return (
-                    <span className="flex items-center gap-1">
-                      {prefix && <span>{prefix}</span>}
-                      <Video size={12} className="inline shrink-0 opacity-70" />
-                      <span>Video</span>
-                    </span>
-                  );
-                }
-                return `${prefix}${lastMessage.text}`;
-              })()
-            ) : (
-              "No messages yet"
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            {isMessageDisable && (
+              <p className="conv-last-msg">
+                {isTyping ? (
+                  <span
+                    style={{ color: "var(--imessage-blue)", fontWeight: "500" }}
+                  >
+                    typing...
+                  </span>
+                ) : lastMessage ? (
+                  (() => {
+                    const prefix = lastMessage.sender === "me" ? "You: " : "";
+                    if (lastMessage.mediaType === "image") {
+                      return (
+                        <span className="flex items-center gap-1">
+                          {prefix && <span>{prefix}</span>}
+                          <ImageIcon
+                            size={12}
+                            className="inline shrink-0 opacity-70"
+                          />
+                          <span>Photo</span>
+                        </span>
+                      );
+                    }
+                    if (lastMessage.mediaType === "video") {
+                      return (
+                        <span className="flex items-center gap-1">
+                          {prefix && <span>{prefix}</span>}
+                          <Video size={12} className="inline shrink-0 opacity-70" />
+                          <span>Video</span>
+                        </span>
+                      );
+                    }
+                    return `${prefix}${lastMessage.text}`;
+                  })()
+                ) : (
+                  "No messages yet"
+                )}
+              </p>
             )}
-          </p>}
-          {isMuted && (
-            <Bell
-              size={12}
-              style={{ color: "var(--text-muted)", flexShrink: 0 }}
-            />
-          )}
-          {showUnreadBadge ? (
-            <span className="unread-count-badge">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          ) : conv.unread && !isActive ? (
-            <div className="unread-dot" />
-          ) : null}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+            {lastMessage?.sender === "me" && !isTyping && (
+              <span className="text-[11px] opacity-70 leading-none select-none">
+                {lastMessage.status === "seen" ? (
+                  <span className="text-sky-500 font-bold" style={{ letterSpacing: "-1.5px" }}>
+                    ✓✓
+                  </span>
+                ) : lastMessage.status === "delivered" ? (
+                  <span className="text-muted-foreground font-semibold" style={{ letterSpacing: "-1.5px" }}>
+                    ✓✓
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">✓</span>
+                )}
+              </span>
+            )}
+            {isMuted && (
+              <Bell
+                size={12}
+                style={{ color: "var(--text-muted)", flexShrink: 0 }}
+              />
+            )}
+            {showUnreadBadge ? (
+              <span className="unread-count-badge">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : conv.unread && !isActive ? (
+              <div className="unread-dot" />
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

@@ -9,7 +9,6 @@ import {
   UserCheck,
   Loader2,
   Users,
-  MessageSquare,
 } from "lucide-react";
 import { ConversationItem } from "./ConversationItem";
 import { ModeToggle } from "./mode-toggle";
@@ -24,6 +23,7 @@ import {
 import { useChatStore } from "@/store/useChatStore";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { SettingsModal } from "./SettingsModal";
 
 interface SidebarProps {
   conversations: any[];
@@ -48,6 +48,7 @@ export function Sidebar({
   const getFriendRequests = useChatStore((state) => state.getFriendRequests);
   const getConversations = useChatStore((state) => state.getConversations);
   const searchResults = useChatStore((state) => state.searchResults);
+  const searchUser = useChatStore((state) => state.searchUser);
   const isSearching = useChatStore((state) => state.isSearching);
   const friendRequests = useChatStore((state) => state.friendRequests);
   const friends = useChatStore((state) => state.friends);
@@ -60,11 +61,20 @@ export function Sidebar({
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState<"chats" | "contacts" | "discover" | "requests">("chats");
+
   useEffect(() => {
     getFriends();
     getFriendRequests();
     getConversations();
   }, [getFriends, getFriendRequests, getConversations]);
+
+  // Sync tab with store if needed
+  useEffect(() => {
+    if (activeTab === "discover" && searchQuery.trim().length >= 3) {
+      searchUser(searchQuery);
+    }
+  }, [searchQuery, activeTab, searchUser]);
 
   const handleSendRequest = async (targetUserId: string) => {
     setLoadingActionId(targetUserId);
@@ -95,76 +105,68 @@ export function Sidebar({
     }
   };
 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   return (
-    <div className="imessage-sidebar">
+    <div className="w-full h-full bg-white/80 dark:bg-[#1E2024]/85 backdrop-blur-3xl rounded-[26px] border border-white/40 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden select-none">
+      {/* Settings Modal (Desktop + Mobile) */}
+      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+
       {/* Sidebar Header */}
       <div className="sidebar-header">
-        <h2 className="sidebar-title">Messages</h2>
-        <div className="sidebar-actions">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 size-8 rounded-full cursor-pointer flex items-center justify-center transition-all duration-150 outline-none border-0 bg-transparent">
-              <MoreVertical size={18} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-48 p-2.5 rounded-2xl border border-black/8 dark:border-white/12 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-2xl flex flex-col gap-2"
+        {/* macOS Traffic Lights */}
+        <div className="traffic-lights">
+          <div className="traffic-light close" title="Close" />
+          <div className="traffic-light minimize" title="Minimize" />
+          <div className="traffic-light maximize" title="Maximize" />
+        </div>
+
+        <div className="sidebar-header-row">
+          <h2 className="sidebar-title">Messages</h2>
+          <div className="sidebar-actions flex items-center gap-1">
+            <button
+              type="button"
+              className="size-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer border-0 text-foreground"
+              title="New Message"
+              onClick={() => setActiveTab("contacts")}
             >
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
-                Preferences
-              </div>
-              <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-xl justify-between">
-                <WallpaperToggle />
-                <AccentToggle />
-                <ModeToggle />
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="size-8 flex items-center justify-center">
-            <UserButton />
+              <span className="text-[14px] leading-none">✏️</span>
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 size-7 rounded-full cursor-pointer flex items-center justify-center transition-all duration-150 outline-none border-0 bg-transparent">
+                <MoreVertical size={16} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-52 p-2 rounded-2xl border border-black/8 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl shadow-2xl flex flex-col gap-1.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold text-foreground cursor-pointer border-0 bg-transparent"
+                >
+                  <span>Settings...</span>
+                  <span className="text-[10px] text-muted-foreground">⌘,</span>
+                </button>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
+                  Quick Themes
+                </div>
+                <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-xl justify-between">
+                  <WallpaperToggle />
+                  <AccentToggle />
+                  <ModeToggle />
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="size-7 flex items-center justify-center">
+              <UserButton />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Segmented Tab Switcher */}
-      <div className="px-5 pb-3">
-        <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg text-[11px] font-semibold relative">
-          <button
-            onClick={() => {
-              setSidebarTab("chats");
-              setSearchQuery("");
-            }}
-            className={`flex-1 py-1.5 rounded-md transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
-              sidebarTab === "chats"
-                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <MessageSquare size={13} />
-            <span>Chats</span>
-          </button>
-          <button
-            onClick={() => {
-              setSidebarTab("users");
-              setSearchQuery("");
-            }}
-            className={`flex-1 py-1.5 rounded-md transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 relative ${
-              sidebarTab === "users"
-                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Users size={13} />
-            <span>Friends</span>
-            {friendRequests.length > 0 && (
-              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                {friendRequests.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Search */}
+      {/* Search Input Bar */}
       <div className="search-wrapper">
         <div className="search-input-container">
           <Search size={14} className="search-icon" />
@@ -172,9 +174,13 @@ export function Sidebar({
             type="text"
             className="search-input"
             placeholder={
-              sidebarTab === "chats"
-                ? "Search conversations..."
-                : "Search username or email..."
+              activeTab === "chats"
+                ? "Search"
+                : activeTab === "contacts"
+                  ? "Search contacts..."
+                  : activeTab === "discover"
+                    ? "Discover users..."
+                    : "Search requests..."
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -185,6 +191,77 @@ export function Sidebar({
               className="animate-spin text-muted-foreground mr-2"
             />
           )}
+        </div>
+      </div>
+
+      {/* 4 Segmented Tabs */}
+      <div className="px-4 pb-2.5">
+        <div className="flex p-1 bg-black/5 dark:bg-white/5 rounded-xl text-[11px] font-semibold gap-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("chats");
+              setSidebarTab("chats");
+              setSearchQuery("");
+            }}
+            className={`flex-1 py-1 px-1.5 rounded-lg transition-all duration-150 cursor-pointer text-center truncate ${
+              activeTab === "chats"
+                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Chats
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("contacts");
+              setSidebarTab("users");
+              setSearchQuery("");
+            }}
+            className={`flex-1 py-1 px-1.5 rounded-lg transition-all duration-150 cursor-pointer text-center truncate ${
+              activeTab === "contacts"
+                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Contacts
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("discover");
+              setSidebarTab("users");
+              setSearchQuery("");
+            }}
+            className={`flex-1 py-1 px-1.5 rounded-lg transition-all duration-150 cursor-pointer text-center truncate ${
+              activeTab === "discover"
+                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Discover
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("requests");
+              setSidebarTab("users");
+              setSearchQuery("");
+            }}
+            className={`flex-1 py-1 px-1.5 rounded-lg transition-all duration-150 cursor-pointer text-center truncate relative ${
+              activeTab === "requests"
+                ? "bg-white dark:bg-zinc-800 text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Requests
+            {friendRequests.length > 0 && (
+              <span className="ml-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full">
+                {friendRequests.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 

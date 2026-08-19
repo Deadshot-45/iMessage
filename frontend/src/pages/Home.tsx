@@ -8,9 +8,17 @@ import { compressImage } from "@/lib/utils";
 import { soundManager } from "@/lib/sound";
 import { toast } from "react-hot-toast";
 import useDebounce from "@/hooks/useDebounce";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const getDeterministicColor = (name: string) => {
-  const colors = ["#ff2d55", "#5856d6", "#34c759", "#007aff", "#af52de", "#ff9500"];
+  const colors = [
+    "#ff2d55",
+    "#5856d6",
+    "#34c759",
+    "#007aff",
+    "#af52de",
+    "#ff9500",
+  ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -35,16 +43,23 @@ const Home = () => {
   const getConversations = useChatStore((state) => state.getConversations);
   const searchUser = useChatStore((state) => state.searchUser);
 
-  const debounceQuery = useDebounce(searchQuery,500)
-
+  const debounceQuery = useDebounce(searchQuery, 500);
 
   const authUser = useAuthStore((state) => state.authUser);
   const onlineUsers = useAuthStore((state) => state.onlineUsers);
   const socket = useAuthStore((state) => state.socket);
 
+  const isLgScreen = useMediaQuery("(min-width: 1024px)");
+  const isMdScreen = useMediaQuery("(min-width: 768px)");
+
   const [inputText, setInputText] = useState("");
-  const [showDetails, setShowDetails] = useState(false);
-  const [mutedChats, setMutedChats] = useState<Record<string | number, boolean>>({});
+  const [showDetails, setShowDetails] = useState(
+    typeof window !== "undefined" && window.innerWidth >= 1024,
+  );
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [mutedChats, setMutedChats] = useState<
+    Record<string | number, boolean>
+  >({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const friends = useChatStore((state) => state.friends);
@@ -96,7 +111,7 @@ const Home = () => {
 
     const handleFriendAccepted = (data: { friend: any }) => {
       const name = data?.friend?.fullName || data?.friend?.username || "A user";
-      
+
       if (isSoundEnabled) {
         soundManager.playFriendRequestSound();
       }
@@ -209,7 +224,9 @@ const Home = () => {
       const uiMessages = chatMessages.map((msg: any) => ({
         id: msg._id,
         text: msg.message || msg.text || "",
-        sender: (String(msg.senderId) === String(authUser?._id) ? "me" : "them") as "me" | "them",
+        sender: (String(msg.senderId) === String(authUser?._id)
+          ? "me"
+          : "them") as "me" | "them",
         timestamp: msg.createdAt
           ? new Date(msg.createdAt).toLocaleTimeString([], {
               hour: "2-digit",
@@ -237,23 +254,28 @@ const Home = () => {
       const lastMsgMediaUrl = item.lastMessage?.mediaUrl || undefined;
 
       // Build the last message fallback for conversations not currently open
-      const fallbackLastMsg = (lastMsgText || lastMsgMediaType)
-        ? [{
-            id: "last",
-            text: lastMsgText,
-            sender: "them" as "me" | "them",
-            timestamp: lastMsgTime,
-            mediaType: lastMsgMediaType,
-            mediaUrl: lastMsgMediaUrl,
-          }]
-        : [];
+      const fallbackLastMsg =
+        lastMsgText || lastMsgMediaType
+          ? [
+              {
+                id: "last",
+                text: lastMsgText,
+                sender: "them" as "me" | "them",
+                timestamp: lastMsgTime,
+                mediaType: lastMsgMediaType,
+                mediaUrl: lastMsgMediaUrl,
+              },
+            ]
+          : [];
 
-      const unreadCount = isSelected ? 0 : (item.unreadCount || 0);
+      const unreadCount = isSelected ? 0 : item.unreadCount || 0;
 
       return {
         id: item._id,
         name: item.fullName || item.username || "User",
-        avatarColor: item.avatarColor || getDeterministicColor(item.fullName || item.username || "User"),
+        avatarColor:
+          item.avatarColor ||
+          getDeterministicColor(item.fullName || item.username || "User"),
         status: onlineUsers.includes(item._id) ? "Online" : "Offline",
         unread: unreadCount > 0,
         unreadCount,
@@ -261,7 +283,15 @@ const Home = () => {
         replies: [],
       };
     });
-  }, [sidebarTab, storeConversations, friends, activeChatId, messages, authUser, onlineUsers]);
+  }, [
+    sidebarTab,
+    storeConversations,
+    friends,
+    activeChatId,
+    messages,
+    authUser,
+    onlineUsers,
+  ]);
 
   const filteredConversations = useMemo(() => {
     if (!debounceQuery.trim()) return uiConversations;
@@ -274,47 +304,91 @@ const Home = () => {
   }, [uiConversations, debounceQuery]);
 
   const activeChat = useMemo(() => {
-    return uiConversations.find((c) => String(c.id) === String(activeChatId)) || null;
+    return (
+      uiConversations.find((c) => String(c.id) === String(activeChatId)) || null
+    );
   }, [uiConversations, activeChatId]);
 
   return (
-    <div className={`imessage-window ${activeChatId ? "chat-active" : ""}`}>
-      {/* Sidebar (Left) */}
-      <Sidebar
-        conversations={filteredConversations}
-        activeChatId={activeChatId}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onSelectConversation={handleSelectConversation}
-        isTypingId={null}
-        mutedChats={mutedChats}
-      />
+    <main className="imessage-container flex items-center justify-center p-3 lg:p-6 w-full h-screen overflow-hidden">
+      <div className="flex w-full h-full max-w-[1560px] gap-3.5 lg:gap-4.5 relative items-stretch">
+        {/* Left Panel: Sidebar */}
+        <aside
+          className={`h-full transition-all duration-300 ${
+            /* Mobile rules: if no active chat, show sidebar full width; if active chat, hide on mobile unless toggled */
+            !isMdScreen
+              ? !activeChatId
+                ? "w-full flex"
+                : "hidden"
+              : isSidebarOpen
+                ? "w-[310px] lg:w-[340px] shrink-0 flex"
+                : "hidden"
+          }`}
+        >
+          <Sidebar
+            conversations={filteredConversations}
+            activeChatId={activeChatId}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onSelectConversation={handleSelectConversation}
+            isTypingId={null}
+            mutedChats={mutedChats}
+          />
+        </aside>
 
-      {/* Chat Area (Center) */}
-      <ChatPanel
-        activeChat={activeChat}
-        inputText={inputText}
-        setInputText={setInputText}
-        onSendMessage={handleSendMessage}
-        isTyping={false}
-        onBack={() => setActiveChatId(null)}
-        showDetails={showDetails}
-        setShowDetails={setShowDetails}
-        selectedFile={selectedFile}
-        setSelectedFile={setSelectedFile}
-      />
+        {/* Center Panel: Chat Screen */}
+        <section
+          className={`h-full transition-all duration-300 ${
+            !isMdScreen
+              ? activeChatId
+                ? "w-full flex"
+                : "hidden"
+              : "flex-1 min-w-0 flex"
+          }`}
+        >
+          <ChatPanel
+            activeChat={activeChat}
+            inputText={inputText}
+            setInputText={setInputText}
+            onSendMessage={handleSendMessage}
+            isTyping={false}
+            onBack={() => setActiveChatId(null)}
+            showDetails={showDetails}
+            setShowDetails={setShowDetails}
+            selectedFile={selectedFile}
+            setSelectedFile={setSelectedFile}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          />
+        </section>
 
-      {/* Details Panel (Right) */}
-      {activeChat && showDetails && (
-        <DetailsPanel
-          activeChat={activeChat}
-          isMuted={!!mutedChats[activeChat.id]}
-          onToggleMute={() => toggleMuteChat(activeChat.id)}
-          onClearHistory={() => clearChatHistory(activeChat.id)}
-          onClose={() => setShowDetails(false)}
-        />
-      )}
-    </div>
+        {/* Right Panel: Details Page (Floating 3rd card on lg: screens) */}
+        {activeChat && showDetails && isLgScreen && (
+          <aside className="w-[300px] lg:w-[330px] shrink-0 h-full animate-in fade-in zoom-in-95 duration-200">
+            <DetailsPanel
+              activeChat={activeChat}
+              isMuted={!!mutedChats[activeChat.id]}
+              onToggleMute={() => toggleMuteChat(activeChat.id)}
+              onClearHistory={() => clearChatHistory(activeChat.id)}
+              onClose={() => setShowDetails(false)}
+              isFullScreenModal={false}
+            />
+          </aside>
+        )}
+
+        {/* Fullscreen Details Modal for small/medium screens (< lg) */}
+        {activeChat && showDetails && !isLgScreen && (
+          <DetailsPanel
+            activeChat={activeChat}
+            isMuted={!!mutedChats[activeChat.id]}
+            onToggleMute={() => toggleMuteChat(activeChat.id)}
+            onClearHistory={() => clearChatHistory(activeChat.id)}
+            onClose={() => setShowDetails(false)}
+            isFullScreenModal={true}
+          />
+        )}
+      </div>
+    </main>
   );
 };
 
