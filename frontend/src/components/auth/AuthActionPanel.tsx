@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Check, X } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useNavigate } from "react-router-dom";
+import useValidation, { useUsernameAvailability } from "@/hooks/useValidation";
+import toast from "react-hot-toast";
 
 export function AuthActionPanel() {
   const navigate = useNavigate();
@@ -12,6 +14,11 @@ export function AuthActionPanel() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
 
+  // Consolidated validation hook & debounced username check
+  const { checkPassword, checkEmail, checkFullName } = useValidation();
+  const { isChecking: isCheckingUsername, status: usernameStatus } =
+    useUsernameAvailability(username, isSignUp, 400);
+
   const signin = useAuthStore((state) => state.signin);
   const signup = useAuthStore((state) => state.signup);
   const isLoggingIn = useAuthStore((state) => state.isLoggingIn);
@@ -21,7 +28,36 @@ export function AuthActionPanel() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (isSignUp) {
+      const nameError = checkFullName(fullName);
+      if (typeof nameError === "string") {
+        toast.error(nameError);
+        return;
+      }
+
+      if (isCheckingUsername) {
+        toast.error("Please wait while we verify username availability");
+        return;
+      }
+
+      if (usernameStatus && !usernameStatus.available) {
+        toast.error(usernameStatus.message || "Please choose a different username");
+        return;
+      }
+
+      const emailError = checkEmail(email);
+      if (typeof emailError === "string") {
+        toast.error(emailError);
+        return;
+      }
+
+      const passwordError = checkPassword(password);
+      if (typeof passwordError === "string") {
+        toast.error(passwordError);
+        return;
+      }
+
       const ok = await signup({
         fullName,
         username,
@@ -32,6 +68,15 @@ export function AuthActionPanel() {
         navigate("/");
       }
     } else {
+      if (!identifier.trim()) {
+        toast.error("Please enter your email or username");
+        return;
+      }
+      if (!password) {
+        toast.error("Please enter your password");
+        return;
+      }
+
       const ok = await signin(identifier, password);
       if (ok) {
         navigate("/");
@@ -40,11 +85,11 @@ export function AuthActionPanel() {
   };
 
   return (
-    <section className="relative flex flex-1 flex-col items-center justify-center p-6 sm:p-10 bg-[#FAFAFC] dark:bg-[#121214] overflow-y-auto">
+    <section className="relative flex flex-1 flex-col items-center justify-center p-6 sm:px-10 bg-[#FAFAFC] dark:bg-[#121214] overflow-y-auto">
       {/* Floating Sign In / Sign Up Card */}
-      <div className="w-full max-w-[390px] bg-[#fafafcd6] dark:bg-[#121214b6] backdrop-blur-2xl rounded-[28px] p-8 sm:p-10 flex flex-col items-center select-none shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-black/5 dark:border-white/10">
+      <div className="w-full max-w-97.5 bg-[#fafafcd6] dark:bg-[#121214b6] backdrop-blur-2xl rounded-[28px] p-8 sm:p-10 flex flex-col items-center select-none shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-black/5 dark:border-white/10">
         {/* Blue iMessage App Icon */}
-        <div className="size-12 rounded-xl bg-gradient-to-b from-[#2997FF] to-[#0071E3] flex items-center justify-center text-white shadow-[0_10px_25px_rgba(0,113,227,0.35)] mb-3 ring-1 ring-white/40 shrink-0">
+        <div className="size-12 rounded-xl bg-linear-to-b from-[#2997FF] to-[#0071E3] flex items-center justify-center text-white shadow-[0_10px_25px_rgba(0,113,227,0.35)] mb-3 ring-1 ring-white/40 shrink-0">
           <svg
             viewBox="0 0 24 24"
             className="size-7 fill-white"
@@ -54,15 +99,20 @@ export function AuthActionPanel() {
           </svg>
         </div>
 
-        <h1 className="text-xl font-bold text-foreground m-0 tracking-tight text-center">
+        <h1 className="text-2xl! font-bold text-card-foreground! m-0! tracking-tight text-center">
           {isSignUp ? "Create Apple Account" : "Sign in"}
         </h1>
-        <p className="text-xs text-muted-foreground my-1.5 text-center">
-          {isSignUp ? "Get started with iMessage Web" : "to continue to iMessage Web"}
+        <p className="text-xs text-muted-foreground my-2! text-center">
+          {isSignUp
+            ? "Get started with iMessage Web"
+            : "to continue to iMessage Web"}
         </p>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3 mt-4">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full flex flex-col gap-3 mt-2"
+        >
           {isSignUp ? (
             <>
               <div className="w-full">
@@ -76,15 +126,45 @@ export function AuthActionPanel() {
                 />
               </div>
 
-              <div className="w-full">
-                <input
-                  type="text"
-                  placeholder="Username (e.g. john_apple)"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-3 text-xs bg-white dark:bg-zinc-800/80 border border-gray-200/90 dark:border-zinc-700/80 rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-                />
+              <div className="w-full flex flex-col gap-1">
+                <div className="relative w-full flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Username (e.g. john_apple)"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className={`w-full px-4 py-3 pr-10 text-xs bg-white dark:bg-zinc-800/80 border rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 outline-none focus:ring-2 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${
+                      usernameStatus
+                        ? usernameStatus.available
+                          ? "border-emerald-500/80 focus:border-emerald-500 focus:ring-emerald-500/20"
+                          : "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
+                        : "border-gray-200/90 dark:border-zinc-700/80 focus:border-blue-500 focus:ring-blue-500/20"
+                    }`}
+                  />
+                  <div className="absolute right-3.5 flex items-center justify-center pointer-events-none">
+                    {isCheckingUsername ? (
+                      <Loader2 className="size-4 animate-spin text-blue-500" />
+                    ) : usernameStatus ? (
+                      usernameStatus.available ? (
+                        <Check className="size-4 text-emerald-500" />
+                      ) : (
+                        <X className="size-4 text-rose-500" />
+                      )
+                    ) : null}
+                  </div>
+                </div>
+                {usernameStatus && (
+                  <span
+                    className={`text-[11px] px-2 font-medium transition-all ${
+                      usernameStatus.available
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-500 dark:text-rose-400"
+                    }`}
+                  >
+                    {usernameStatus.message}
+                  </span>
+                )}
               </div>
 
               <div className="w-full">
@@ -138,7 +218,12 @@ export function AuthActionPanel() {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={
+              isLoading ||
+              (isSignUp &&
+                (isCheckingUsername ||
+                  (usernameStatus !== null && !usernameStatus.available)))
+            }
             className="w-full h-11 rounded-2xl bg-[#0066cc] hover:bg-[#005bb5] active:bg-[#004f9e] disabled:opacity-60 text-white font-medium text-xs shadow-[0_4px_14px_rgba(0,102,204,0.25)] flex items-center justify-center gap-2 cursor-pointer transition-all border-0 mt-2"
           >
             {isLoading ? (
@@ -173,7 +258,7 @@ export function AuthActionPanel() {
       </div>
 
       {/* Security Disclaimer */}
-      <p className="text-[10.5px] text-gray-400 dark:text-zinc-500 text-center mt-6 leading-relaxed">
+      <p className="text-[10.5px] relative md:absolute bottom-0 md:bottom-6 text-gray-400 dark:text-zinc-500 text-center mt-6 leading-relaxed">
         Protected with JWT Authentication & Redis Session Store.
       </p>
     </section>

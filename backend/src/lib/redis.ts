@@ -11,7 +11,9 @@ if (REDIS_URL) {
       maxRetriesPerRequest: 1,
       retryStrategy(times) {
         if (times > 3) {
-          console.warn("[Redis] Failed to connect after 3 attempts, running in degraded mode.");
+          console.warn(
+            "[Redis] Failed to connect after 3 attempts, running in degraded mode.",
+          );
           return null;
         }
         return Math.min(times * 200, 1000);
@@ -31,7 +33,9 @@ if (REDIS_URL) {
     console.warn("[Redis] Initialization skipped:", err?.message);
   }
 } else {
-  console.log("[Redis] No REDIS_URL provided. Operating in in-memory session mode.");
+  console.log(
+    "[Redis] No REDIS_URL provided. Operating in in-memory session mode.",
+  );
 }
 
 // Helper methods with safe fallback
@@ -45,7 +49,11 @@ export const redisCache = {
     }
   },
 
-  set: async (key: string, value: string, expireSeconds?: number): Promise<void> => {
+  set: async (
+    key: string,
+    value: string,
+    expireSeconds?: number,
+  ): Promise<void> => {
     if (!redisClient || !isRedisReady) return;
     try {
       if (expireSeconds) {

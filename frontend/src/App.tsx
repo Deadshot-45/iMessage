@@ -36,10 +36,35 @@ function App() {
     <>
       <RouterProvider router={router} />
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
-          duration: 5000,
-          className: "!bg-gray-900 !text-white !border !border-gray-700",
+          duration: 4000,
+          style: {
+            background: "var(--win-bg)",
+            color: "var(--text-primary)",
+            backdropFilter: "blur(24px) saturate(190%)",
+            WebkitBackdropFilter: "blur(24px) saturate(190%)",
+            border: "1px solid var(--win-border)",
+            borderRadius: "16px",
+            padding: "12px 18px",
+            fontSize: "13px",
+            fontWeight: 500,
+            boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05)",
+            fontFamily: "var(--font-apple)",
+            letterSpacing: "-0.1px",
+          },
+          success: {
+            iconTheme: {
+              primary: "#34C759",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#FF3B30",
+              secondary: "#fff",
+            },
+          },
         }}
       />
     </>

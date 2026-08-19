@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import { generateToken, clearToken } from "../lib/jwt.js";
+import { redisCache } from "../lib/redis.js";
 import type { Request, Response } from "express";
 
 const getDeterministicColor = (name: string) => {
@@ -17,6 +18,78 @@ const getDeterministicColor = (name: string) => {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return colors[Math.abs(hash) % colors.length];
+};
+
+export const checkUsername = async (req: Request, res: Response) => {
+  try {
+    const rawUsername = String(req.query.username || "").trim();
+
+    if (!rawUsername) {
+      return res.status(400).json({
+        available: false,
+        message: "Username is required",
+        success: false,
+      });
+    }
+
+    if (rawUsername.length < 3) {
+      return res.status(400).json({
+        available: false,
+        message: "Username must be at least 3 characters",
+        success: false,
+      });
+    }
+
+    if (rawUsername.length > 30) {
+      return res.status(400).json({
+        available: false,
+        message: "Username cannot exceed 30 characters",
+        success: false,
+      });
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_.-]+$/;
+    if (!usernameRegex.test(rawUsername)) {
+      return res.status(400).json({
+        available: false,
+        message: "Username can only contain letters, numbers, underscores, dashes, and periods",
+        success: false,
+      });
+    }
+
+    const cleanUsername = rawUsername.toLowerCase();
+
+    // 1. Check Redis Cache
+    const cachedStatus = await redisCache.get(`un_avail:${cleanUsername}`);
+    if (cachedStatus !== null) {
+      const isAvailable = cachedStatus === "true";
+      return res.status(200).json({
+        available: isAvailable,
+        message: isAvailable ? "Username is available" : "Username is already taken",
+        success: true,
+      });
+    }
+
+    // 2. Query Database
+    const existingUser = await User.exists({ username: cleanUsername });
+    const isAvailable = !existingUser;
+
+    // 3. Cache result in Redis for 30 seconds
+    await redisCache.set(`un_avail:${cleanUsername}`, isAvailable ? "true" : "false", 30);
+
+    return res.status(200).json({
+      available: isAvailable,
+      message: isAvailable ? "Username is available" : "Username is already taken",
+      success: true,
+    });
+  } catch (error: any) {
+    console.error("Check Username Error:", error);
+    return res.status(500).json({
+      available: false,
+      message: "Error checking username availability",
+      success: false,
+    });
+  }
 };
 
 export const signup = async (req: Request, res: Response) => {
@@ -71,6 +144,9 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     await newUser.save();
+
+    // Invalidate Redis username availability cache
+    await redisCache.set(`un_avail:${cleanUsername}`, "false", 300);
 
     // Generate JWT token & set cookie
     const token = await generateToken(String(newUser._id), res);
