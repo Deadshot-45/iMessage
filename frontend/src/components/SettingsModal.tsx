@@ -20,7 +20,6 @@ import {
 import { useTheme } from "./provider/theme-provider";
 import { useAccent, ACCENTS } from "./provider/accent-provider";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useClerk } from "@clerk/react";
 
 interface SettingsModalProps {
   open: boolean;
@@ -37,7 +36,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const { accent, setAccent } = useAccent();
   const authUser = useAuthStore((state) => state.authUser);
-  const { signOut } = useClerk();
+  const logout = useAuthStore((state) => state.logout);
 
   const displayName = authUser?.fullName || authUser?.username || "Alex Carter";
   const displayEmail = authUser?.email || "sarah.j@example.com";
@@ -583,7 +582,10 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <div className="p-2">
               <button
                 type="button"
-                onClick={() => signOut()}
+                onClick={() => {
+                  onOpenChange(false);
+                  logout();
+                }}
                 className="text-red-500 hover:text-red-600 font-semibold text-xs py-2 w-full text-left bg-transparent border-0 cursor-pointer flex items-center gap-2"
               >
                 <LogOut size={14} />

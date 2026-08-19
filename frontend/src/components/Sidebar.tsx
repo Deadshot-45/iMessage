@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { UserButton } from "@clerk/react";
 import {
   Search,
   MoreVertical,
@@ -10,6 +9,8 @@ import {
   UserCheck,
   Loader2,
   Users,
+  LogOut,
+  Settings,
 } from "lucide-react";
 import { ConversationItem } from "./ConversationItem";
 import { ModeToggle } from "./mode-toggle";
@@ -78,6 +79,8 @@ export function Sidebar({
   const setActiveChatId = useChatStore((state) => state.setActiveChatId);
 
   const onlineUsers = useAuthStore((state) => state.onlineUsers);
+  const authUser = useAuthStore((state) => state.authUser);
+  const logout = useAuthStore((state) => state.logout);
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -259,9 +262,63 @@ export function Sidebar({
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
-            <div className="size-7 flex items-center justify-center">
-              <UserButton />
-            </div>
+
+            {/* Apple User Avatar & Profile Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="size-7 rounded-full text-white text-[11px] font-bold flex items-center justify-center cursor-pointer border-0 shadow-xs ring-1 ring-black/10 dark:ring-white/20 select-none outline-none"
+                style={{ backgroundColor: authUser?.avatarColor || "#007aff" }}
+                title={authUser?.fullName || "Account"}
+              >
+                {(authUser?.fullName || authUser?.username || "U")
+                  .split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase()}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 p-2 rounded-2xl border border-black/8 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl shadow-2xl flex flex-col gap-1.5"
+              >
+                <div className="px-2.5 py-2 flex items-center gap-2.5">
+                  <div
+                    className="size-8 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-xs"
+                    style={{ backgroundColor: authUser?.avatarColor || "#007aff" }}
+                  >
+                    {(authUser?.fullName || authUser?.username || "U")
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {authUser?.fullName || "User"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      @{authUser?.username || authUser?.email}
+                    </span>
+                  </div>
+                </div>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-xs font-medium text-foreground cursor-pointer border-0 bg-transparent"
+                >
+                  <Settings size={14} />
+                  <span>Preferences...</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-red-500/10 text-xs font-medium text-red-600 dark:text-red-400 cursor-pointer border-0 bg-transparent"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
+                </button>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

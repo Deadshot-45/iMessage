@@ -1,5 +1,5 @@
-import { getAuth } from "@clerk/express";
 import User from "../models/user.model.js";
+import { verifyToken } from "../lib/jwt.js";
 import type { NextFunction, Request, Response } from "express";
 
 const checkUser = async (req: Request, res: Response) => {
@@ -10,21 +10,27 @@ const checkUser = async (req: Request, res: Response) => {
         .json({ message: "Unauthorized", success: false, status: 401 });
     }
 
-    const userObj = typeof req.user.toObject === "function" ? req.user.toObject() : req.user;
+    const userObj =
+      typeof req.user.toObject === "function" ? req.user.toObject() : req.user;
 
-    res
-      .status(200)
-      .json({
-        ...userObj,
-        message: "User is verified",
-        success: true,
-        status: 200,
-      });
+    res.status(200).json({
+      ...userObj,
+      message: "User is verified",
+      success: true,
+      status: 200,
+    });
   } catch (error: any) {
-    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
-    res
-      .status(statusCode)
-      .json({ message: error.message || "Internal server error", success: false, status: statusCode });
+    const statusCode =
+      error.name === "ValidationError" || error.name === "CastError"
+        ? 400
+        : error.code === 11000
+          ? 409
+          : 500;
+    res.status(statusCode).json({
+      message: error.message || "Internal server error",
+      success: false,
+      status: statusCode,
+    });
   }
 };
 
@@ -34,33 +40,44 @@ const protectRoute = async (
   next: NextFunction,
 ) => {
   try {
-    const { userId } = getAuth(req);
-    if (!userId) {
+    // 1. Extract token from Cookie or Authorization header
+    let token = req.cookies?.jwt;
+
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
       return res
         .status(401)
-        .json({ message: "Unauthorized", success: false, status: 401 });
+        .json({ message: "Unauthorized - No Token Provided", success: false });
     }
 
-    console.log("user", userId);
+    // 2. Verify JWT signature
+    const decoded = verifyToken(token);
+    if (!decoded || !decoded.userId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - Invalid Token", success: false });
+    }
 
-    const user = await User.findOne({ clerkId: userId });
+    // 3. Find User
+    const user = await User.findById(decoded.userId).select("-password");
     if (!user) {
       return res
-        .status(200)
-        .json({ message: "User not found", success: false, status: 200 });
+        .status(404)
+        .json({ message: "User not found", success: false });
     }
 
-    console.log("mongo user", user);
-
-    // Attaching user to req
+    // 4. Attach user to request
     req.user = user;
     next();
   } catch (error: any) {
-    console.log(error);
-    const statusCode = error.name === "ValidationError" || error.name === "CastError" ? 400 : (error.code === 11000 ? 409 : 500);
-    res
-      .status(statusCode)
-      .json({ message: error.message || "Error in server side", success: false, status: statusCode });
+    console.error("Auth Middleware Error:", error);
+    res.status(500).json({ message: "Internal server error in auth verification", success: false });
   }
 };
 

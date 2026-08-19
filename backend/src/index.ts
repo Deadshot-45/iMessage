@@ -1,12 +1,11 @@
 import "dotenv/config";
-import express, { Request, Response, type NextFunction } from "express";
+import express, { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import connection from "./lib/db.js";
-import { clerkMiddleware } from "@clerk/express";
 import job from "./lib/cron.js";
-import clerkWebhook from "./weebhooks/clerk.webhooks.js";
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
@@ -14,13 +13,6 @@ import friendRoutes from "./routes/friend.route.js";
 import { app, server, isOriginAllowed } from "./lib/socket.js";
 
 const PORT = process.env.PORT || 3000;
-const CLIENT_URL = process.env.CLIENT_URL;
-
-app.use(
-  "/api/webhooks/clerk",
-  express.raw({ type: "application/json" }),
-  clerkWebhook,
-);
 
 // Middleware
 app.use(
@@ -37,9 +29,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Clerk middleware
-app.use(clerkMiddleware());
+app.use(cookieParser());
 
 // API Routes
 app.get("/health", (req: Request, res: Response) => {
@@ -52,7 +42,6 @@ app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "Chat App Backend API is running with TypeScript!" });
 });
 app.use("/api/friends", friendRoutes);
-
 
 // Serve Frontend Static Assets in Production
 const frontendDist = path.join(process.cwd(), "..", "frontend", "dist");
@@ -78,7 +67,6 @@ if (fs.existsSync(frontendDist)) {
 }
 
 // Start the server and listen to the socket.io
-
 server.listen(PORT, async () => {
   await connection();
   console.log(`Server is running on port ${PORT}`);

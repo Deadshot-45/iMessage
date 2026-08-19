@@ -1,27 +1,21 @@
-import { useAuth } from "@clerk/react";
 import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { LoadingScreen } from "./SuspenseLoader";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isSignedIn, isLoaded } = useAuth();
-
-  // option 2 - better for performance
-  const clearAuth = useAuthStore((state) => state.clearAuth);
-  const checkAuth = useAuthStore((state) => state.checkAuth);
+  const authUser = useAuthStore((state) => state.authUser);
   const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    checkAuth();
+  }, [checkAuth]);
 
-    if (isSignedIn) checkAuth();
-    else clearAuth();
-  }, [checkAuth, clearAuth, isLoaded, isSignedIn]);
+  if (isCheckingAuth) return <LoadingScreen />;
+  if (!authUser) return <Navigate to="/auth" replace />;
 
-  if (!isLoaded || (isSignedIn && isCheckingAuth)) return <LoadingScreen />;
-  if (!isSignedIn) return <Navigate to="/auth" replace />;
-  return children;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

@@ -11,10 +11,6 @@ RUN npm ci
 # Copy frontend source code
 COPY frontend/ ./
 
-# Declare build argument for Clerk Publishable Key (Vite embeds this at build time)
-ARG VITE_CLERK_PUBLISHABLE_KEY
-ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
-
 # Build the static assets (outputs to frontend/dist)
 RUN npm run build
 

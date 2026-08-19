@@ -1,16 +1,17 @@
 import { AuthHeroPanel } from "./auth/AuthHeroPanel";
 import { AuthActionPanel } from "./auth/AuthActionPanel";
-import { useAuth } from "@clerk/react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Navigate } from "react-router-dom";
 import { LoadingScreen } from "./SuspenseLoader";
 
 export const APP_NAME = "iMessage";
 
 const LockScreen = () => {
-  const { isSignedIn, isLoaded } = useAuth();
+  const authUser = useAuthStore((state) => state.authUser);
+  const isCheckingAuth = useAuthStore((state) => state.isCheckingAuth);
 
-  if (!isLoaded) return <LoadingScreen />;
-  if (isSignedIn) return <Navigate to="/" replace />;
+  if (isCheckingAuth) return <LoadingScreen />;
+  if (authUser) return <Navigate to="/" replace />;
 
   return (
     <main className="imessage-container relative flex w-full min-h-screen md:h-screen flex-1 flex-col md:flex-row overflow-y-auto md:overflow-hidden text-foreground bg-[#FAFAFC] dark:bg-[#121214]">

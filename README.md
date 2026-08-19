@@ -11,7 +11,8 @@
 [![Express](https://img.shields.io/badge/Express-5.0-000000?style=flat&logo=express)](https://expressjs.com/)
 [![Socket.io](https://img.shields.io/badge/Socket.io-4.8-010101?style=flat&logo=socketdotio)](https://socket.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat&logo=mongodb)](https://mongoosejs.com/)
-[![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF?style=flat&logo=clerk)](https://clerk.com/)
+[![Redis](https://img.shields.io/badge/Redis-ioredis-DC382D?style=flat&logo=redis)](https://redis.io/)
+[![JWT](https://img.shields.io/badge/Auth-JWT_Cookie-000000?style=flat&logo=jsonwebtokens)](https://jwt.io/)
 
 [Live Demo](#-docker-deployment) • [Architecture](#-system-architecture) • [Features](#-key-features) • [Getting Started](#-getting-started) • [API & Sockets](#-api--socket-events)
 
@@ -26,6 +27,7 @@
 ### ✨ Highlights
 - 🪟 **macOS Sequoia Floating Window**: Standalone frosted-glass cards with dynamic Mica translucency, backdrop blurs, and Apple traffic lights.
 - ⚡ **Real-Time Synchronous Core**: Instant bi-directional messaging with Socket.io, optimistic UI updates, and zero perceptible latency.
+- 🔐 **Native Auth & Redis Caching**: Secure JWT session authentication stored in HTTP-Only cookies with Redis session caching and rate limits.
 - 🖼️ **Progressive Media Engine**: Seamlessly send images, 4K videos, audio waveforms, and animated GIFs with ImageKit integration and a full-screen Lightbox viewer.
 - 👥 **Friendship & Contact Graph**: Real-time friend discovery, pending request badges, live online presence, and instant contact acceptance.
 - 🎨 **Adaptive Themes & Wallpapers**: Switch between Sequoia Aurora Neon, classic macOS wallpapers, light/dark modes, and 6 custom Apple accent color schemes.
@@ -78,15 +80,16 @@
 
 ```
                                   +-------------------+
-                                  |   Clerk Auth V5   |
+                                  |   Redis Cache     |
+                                  | (Session & Tokens)|
                                   +---------+---------+
-                                            | (JWT / Webhooks)
+                                            |
                                             v
 +------------------+             +--------------------+             +------------------+
 |                  |   HTTP REST |                    |   Mongoose  |                  |
 |  React 19 / Vite | <=========> |   Node.js / Express| <=========> |  MongoDB Atlas   |
 |   Tailwind v4    |             |   TypeScript API   |             |                  |
-|  Zustand Store   | < - - - - - |                    |             +------------------+
+|  Zustand Store   | < - - - - - |  JWT Cookie Auth   |             +------------------+
 |                  |  WebSocket  |   Socket.io Engine |
 +------------------+ (Socket.io) +---------+----------+
                                             |
@@ -99,7 +102,7 @@
 ### Modular Performance Architecture
 - **Decentralized Zustand Slices**: Child components (`Sidebar`, `ChatPanel`, `DetailsPanel`) consume localized store selectors, preventing unnecessary top-level re-renders.
 - **Code Splitting & Lazy Loading**: Modals (`SettingsModal`, `MediaViewerModal`) load on demand using `React.lazy` and `Suspense`.
-- **Vendor Chunk Splitting**: Rollup splits heavy dependencies (`@clerk/react`, `react-dom`, `lucide-react`, core state utilities) for browser caching.
+- **Vendor Chunk Splitting**: Rollup splits heavy dependencies (`react-dom`, `lucide-react`, core state utilities) for browser caching.
 
 ---
 
@@ -113,10 +116,9 @@ iMessage/
 ├── backend/
 │   ├── src/
 │   │   ├── controllers/             # Auth, message, user, friend controllers
-│   │   ├── lib/                     # Database connection, Socket.io server, cron jobs
-│   │   ├── models/                  # User, Message, FriendRequest schemas
+│   │   ├── lib/                     # Database, Socket.io, Redis client, JWT helper
+│   │   ├── models/                  # User, Message, Friendship schemas
 │   │   ├── routes/                  # Express API route declarations
-│   │   ├── weebhooks/               # Clerk user synchronization webhooks
 │   │   └── index.ts                 # Express entrypoint & server bootstrap
 │   ├── package.json
 │   └── tsconfig.json
@@ -139,7 +141,7 @@ iMessage/
 │   │   │   └── Home.tsx             # Responsive 3-panel container orchestrator
 │   │   ├── store/                   # Zustand useChatStore & useAuthStore
 │   │   ├── types.ts                 # Core TypeScript definitions
-│   │   └── main.tsx                 # Root render & Clerk setup
+│   │   └── main.tsx                 # Root render & app providers
 │   ├── package.json
 │   ├── vite.config.ts               # Vite configuration with Rollup chunking
 │   └── eslint.config.js             # Modern ESLint flat config
@@ -159,7 +161,6 @@ iMessage/
 - **Bundler & Tooling**: Vite 8, Rolldown / Babel React Compiler
 - **Styling**: Tailwind CSS v4, Glassmorphism, CSS Variable Tokens
 - **State Management**: Zustand v5 (Persisted with Hydration Gate)
-- **Authentication**: Clerk React SDK
 - **Real-Time Client**: Socket.io Client
 - **Icons & Visuals**: Lucide React, Google SF Pro / Geist Fonts
 - **Notifications**: React Hot Toast
@@ -168,8 +169,9 @@ iMessage/
 - **Runtime**: Node.js 20+, TypeScript
 - **Framework**: Express 5
 - **Database**: MongoDB Atlas via Mongoose
+- **Caching & Sessions**: Redis (via ioredis with fallback)
+- **Security & Auth**: JWT (HTTP-Only Secure Cookie), Bcrypt.js
 - **Real-Time Gateway**: Socket.io 4.8
-- **Authentication**: Clerk Express SDK & Webhook verification
 - **Media Cloud**: ImageKit Node SDK with Multer multipart streaming
 - **Task Scheduling**: Cron
 
@@ -186,7 +188,7 @@ iMessage/
 - [Node.js](https://nodejs.org/) `>= 20.0.0`
 - [npm](https://www.npmjs.com/) `>= 10.0.0`
 - [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) connection string
-- [Clerk Developer Account](https://clerk.com/)
+- [Redis Instance](https://redis.io/) (Optional, falls back to in-memory)
 - [ImageKit Account](https://imagekit.io/) (for cloud media storage)
 
 ---
@@ -206,11 +208,8 @@ Create a `.env` file in the `backend/` directory:
 PORT=3000
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/imessage?retryWrites=true&w=majority
 CLIENT_URL=http://localhost:5173
-
-# Clerk Authentication
-CLERK_SECRET_KEY=sk_test_...
-CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_WEBHOOK_SECRET=whsec_...
+JWT_SECRET=your_super_secret_jwt_key
+REDIS_URL=redis://default:<password>@<host>:<port>
 
 # ImageKit Media Storage
 IMAGEKIT_PUBLIC_KEY=public_...
@@ -224,7 +223,6 @@ IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id/
 Create a `.env` file in the `frontend/` directory:
 
 ```env
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 VITE_API_URL=http://localhost:3000/api
 VITE_SOCKET_URL=http://localhost:3000
 ```
