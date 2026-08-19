@@ -85,7 +85,7 @@ export function AuthActionPanel() {
   };
 
   return (
-    <section className="relative flex flex-1 flex-col items-center justify-center p-6 sm:px-10 bg-[#FAFAFC] dark:bg-[#121214] overflow-y-auto">
+    <section className="relative flex flex-1 flex-col items-center justify-center p-6 sm:px-10 bg-[#FAFAFC] dark:bg-[#121214] overflow-y-auto no-scrollbar">
       {/* Floating Sign In / Sign Up Card */}
       <div className="w-full max-w-97.5 bg-[#fafafcd6] dark:bg-[#121214b6] backdrop-blur-2xl rounded-[28px] p-8 sm:p-10 flex flex-col items-center select-none shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-black/5 dark:border-white/10">
         {/* App Icon */}
