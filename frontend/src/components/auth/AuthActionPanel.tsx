@@ -5,6 +5,13 @@ import { useNavigate } from "react-router-dom";
 import useValidation, { useUsernameAvailability } from "@/hooks/useValidation";
 import toast from "react-hot-toast";
 
+const initialErrorState = {
+  name: "",
+  username: "",
+  email: "",
+  password: "",
+};
+
 export function AuthActionPanel() {
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -13,12 +20,7 @@ export function AuthActionPanel() {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [error, setError] = useState({
-    name: "",
-    username: "",
-    email: "",
-    password: "",
-  });
+  const [error, setError] = useState(initialErrorState);
 
   // Consolidated validation hook & debounced username check
   const { checkPassword, checkEmail, checkFullName } = useValidation();
@@ -34,7 +36,7 @@ export function AuthActionPanel() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setError(initialErrorState);
     if (isSignUp) {
       const nameError = checkFullName(fullName);
       if (typeof nameError === "string") {
@@ -65,7 +67,7 @@ export function AuthActionPanel() {
         toast.error(passwordError);
         return;
       }
-
+      setError(initialErrorState);
       const ok = await signup({
         fullName,
         username,
@@ -73,6 +75,7 @@ export function AuthActionPanel() {
         password,
       });
       if (ok) {
+        setError(initialErrorState);
         navigate("/");
       }
     } else {
@@ -90,8 +93,11 @@ export function AuthActionPanel() {
         return;
       }
 
+      setError(initialErrorState);
+
       const ok = await signin(identifier, password);
       if (ok) {
+        setError(initialErrorState);
         navigate("/");
       }
     }
