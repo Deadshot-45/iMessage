@@ -117,8 +117,9 @@ export function useUsernameAvailability(
  */
 export const useValidation = () => {
   const checkPassword = (password: string): string | true => {
-    if (!password || password.length < 6) {
-      return "Password must be at least 6 characters long";
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!password || !passwordRegex.test(password)) {
+      return "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character";
     }
     return true;
   };
