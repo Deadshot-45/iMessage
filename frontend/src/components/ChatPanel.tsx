@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, lazy, Suspense, useMemo } from "react";
 import {
   ChevronLeft,
   Info,
@@ -14,48 +14,154 @@ import {
 import type { Conversation, Message } from "../types";
 import { Input } from "./ui/input";
 import { useChatStore } from "@/store/useChatStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { ProgressiveMedia } from "./media/ProgressiveMedia";
-import { MediaViewerModal } from "./media/MediaViewerModal";
+import { compressImage } from "@/lib/utils";
+
+// Lazy-load MediaViewerModal (code splitting)
+const MediaViewerModal = lazy(() =>
+  import("./media/MediaViewerModal").then((m) => ({ default: m.MediaViewerModal })),
+);
 
 interface ChatPanelProps {
-  activeChat: Conversation | null;
-  inputText: string;
-  setInputText: (text: string) => void;
-  onSendMessage: () => void;
-  isTyping: boolean;
-  onBack: () => void;
+  activeChat?: Conversation | null;
+  inputText?: string;
+  setInputText?: (text: string) => void;
+  onSendMessage?: () => void;
+  isTyping?: boolean;
+  onBack?: () => void;
   showDetails: boolean;
   setShowDetails: (show: boolean) => void;
-  selectedFile: File | null;
-  setSelectedFile: (file: File | null) => void;
+  selectedFile?: File | null;
+  setSelectedFile?: (file: File | null) => void;
   isSidebarOpen?: boolean;
   onToggleSidebar?: () => void;
 }
 
 export function ChatPanel({
-  activeChat,
-  inputText,
-  setInputText,
-  onSendMessage,
-  isTyping,
+  activeChat: propActiveChat,
+  inputText: propInputText,
+  setInputText: propSetInputText,
+  onSendMessage: propOnSendMessage,
+  isTyping = false,
   onBack,
   showDetails,
   setShowDetails,
-  selectedFile,
-  setSelectedFile,
+  selectedFile: propSelectedFile,
+  setSelectedFile: propSetSelectedFile,
   isSidebarOpen = true,
   onToggleSidebar,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Local state fallbacks if not controlled by parent
+  const [localInputText, setLocalInputText] = useState("");
+  const [localSelectedFile, setLocalSelectedFile] = useState<File | null>(null);
+
+  const inputText = propInputText !== undefined ? propInputText : localInputText;
+  const setInputText = propSetInputText || setLocalInputText;
+  const selectedFile = propSelectedFile !== undefined ? propSelectedFile : localSelectedFile;
+  const setSelectedFile = propSetSelectedFile || setLocalSelectedFile;
+
+  const activeChatId = useChatStore((state) => state.activeChatId);
+  const storeMessages = useChatStore((state) => state.messages);
+  const sendMessage = useChatStore((state) => state.sendMessage);
+  const getMessages = useChatStore((state) => state.getMessages);
+  const subscribeToMessage = useChatStore((state) => state.subscribeToMessage);
+  const unsubscribeFromMessages = useChatStore(
+    (state) => state.unsubscribeFromMessages,
+  );
+  const storeConversations = useChatStore((state) => state.conversations);
+  const friends = useChatStore((state) => state.friends);
   const sendingMedia = useChatStore((state) => state.sendingMedia);
   const deleteMessage = useChatStore((state) => state.deleteMessage);
   const markMessagesAsRead = useChatStore((state) => state.markMessagesAsRead);
+
+  const authUser = useAuthStore((state) => state.authUser);
+  const onlineUsers = useAuthStore((state) => state.onlineUsers);
+
+  // Derive active chat if not provided
+  const activeChat = useMemo(() => {
+    if (propActiveChat !== undefined) return propActiveChat;
+    if (!activeChatId) return null;
+
+    const all = [...storeConversations, ...friends];
+    const found = all.find((c) => String(c._id || c.id) === String(activeChatId));
+    if (!found) return null;
+
+    const uiMessages = storeMessages.map((msg: any) => ({
+      id: msg._id,
+      text: msg.message || msg.text || "",
+      sender: (String(msg.senderId) === String(authUser?._id)
+        ? "me"
+        : "them") as "me" | "them",
+      timestamp: msg.createdAt
+        ? new Date(msg.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "",
+      mediaUrl: msg.mediaUrl,
+      mediaType: msg.mediaType,
+      thumbnailUrl: msg.thumbnailUrl,
+      mediaSize: msg.mediaSize,
+      mediaDuration: msg.mediaDuration,
+      status: msg.status || "sent",
+      isDeleted: msg.isDeleted || false,
+    }));
+
+    return {
+      id: found._id || found.id,
+      name: found.fullName || found.username || found.name || "User",
+      avatarColor: found.avatarColor || "#007aff",
+      status: onlineUsers.includes(found._id || found.id) ? "Online" : "Offline",
+      unread: false,
+      messages: uiMessages,
+      replies: [],
+    };
+  }, [
+    propActiveChat,
+    activeChatId,
+    storeConversations,
+    friends,
+    storeMessages,
+    authUser,
+    onlineUsers,
+  ]);
 
   const [lightboxMedia, setLightboxMedia] = useState<{
     url: string;
     type: string;
   } | null>(null);
+
+  // Sync messages and subscription for active chat
+  useEffect(() => {
+    if (activeChatId) {
+      getMessages(activeChatId);
+      subscribeToMessage(activeChatId);
+    }
+    return () => {
+      unsubscribeFromMessages();
+    };
+  }, [activeChatId, getMessages, subscribeToMessage, unsubscribeFromMessages]);
+
+  const handleSend = async () => {
+    if (propOnSendMessage) {
+      propOnSendMessage();
+      return;
+    }
+    if ((!inputText.trim() && !selectedFile) || !activeChatId) return;
+
+    let mediaToSend = selectedFile || undefined;
+    if (mediaToSend) {
+      mediaToSend = await compressImage(mediaToSend);
+    }
+
+    sendMessage(activeChatId, { message: inputText, chatMedia: mediaToSend });
+    setInputText("");
+    setSelectedFile(null);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,7 +189,7 @@ export function ChatPanel({
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      onSendMessage();
+      handleSend();
     }
   };
 
@@ -105,23 +211,13 @@ export function ChatPanel({
     );
   }
 
-  const initials = activeChat.name
+  const initials = (activeChat.name || "U")
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("");
 
   return (
     <div className="w-full h-full bg-white/75 dark:bg-[#1A1C20]/85 backdrop-blur-3xl rounded-[26px] border border-white/40 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden select-none relative">
-      {/* Fullscreen Media Lightbox */}
-      {lightboxMedia && (
-        <MediaViewerModal
-          mediaUrl={lightboxMedia.url}
-          mediaType={lightboxMedia.type}
-          onClose={() => setLightboxMedia(null)}
-          senderName={activeChat.name}
-        />
-      )}
-
       {/* Chat Header (Sequoia Glass) */}
       <div className="px-5 py-3.5 border-b border-black/[0.06] dark:border-white/[0.08] flex justify-between items-center bg-transparent shrink-0">
         <div className="flex items-center gap-2">
@@ -461,7 +557,7 @@ export function ChatPanel({
         </div>
 
         <button
-          onClick={onSendMessage}
+          onClick={handleSend}
           className="send-btn"
           disabled={(!inputText.trim() && !selectedFile) || sendingMedia}
         >
@@ -471,6 +567,18 @@ export function ChatPanel({
           />
         </button>
       </div>
+
+      {/* Code-split Lazy Lightbox Modal */}
+      {lightboxMedia && (
+        <Suspense fallback={null}>
+          <MediaViewerModal
+            onClose={() => setLightboxMedia(null)}
+            mediaUrl={lightboxMedia.url}
+            mediaType={lightboxMedia.type}
+            senderName={activeChat.name}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

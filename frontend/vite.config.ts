@@ -7,7 +7,8 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(), tailwindcss(),
+    react(),
+    tailwindcss(),
     babel({ presets: [reactCompilerPreset()] })
   ],
   resolve: {
@@ -18,4 +19,29 @@ export default defineConfig({
   server: {
     host: true,
   },
+  build: {
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@clerk')) {
+              return 'vendor-clerk';
+            }
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('socket.io-client') || id.includes('axios') || id.includes('zustand')) {
+              return 'vendor-core';
+            }
+          }
+        },
+      },
+    },
+  },
 })
+

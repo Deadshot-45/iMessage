@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Bell, ImageIcon, Video } from "lucide-react";
 import type { Conversation } from "../types";
 
@@ -6,11 +7,11 @@ interface ConversationItemProps {
   isActive: boolean;
   isTyping: boolean;
   isMuted: boolean;
-  isMessageDisable?: boolean ;
+  isMessageDisable?: boolean;
   onClick: () => void;
 }
 
-export function ConversationItem({
+export const ConversationItem = memo(function ConversationItem({
   conv,
   isActive,
   isTyping,
@@ -122,4 +123,5 @@ export function ConversationItem({
       </div>
     </div>
   );
-}
+});
+

@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { UserButton } from "@clerk/react";
 import {
   Search,
@@ -21,47 +22,70 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useChatStore } from "@/store/useChatStore";
-import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "react-hot-toast";
-import { SettingsModal } from "./SettingsModal";
+import useDebounce from "@/hooks/useDebounce";
+
+// Lazy-load SettingsModal (code splitting)
+const SettingsModal = lazy(() =>
+  import("./SettingsModal").then((m) => ({ default: m.SettingsModal })),
+);
+
+const getDeterministicColor = (name: string) => {
+  const colors = [
+    "#ff2d55",
+    "#5856d6",
+    "#34c759",
+    "#007aff",
+    "#af52de",
+    "#ff9500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 interface SidebarProps {
-  conversations: any[];
-  activeChatId: any;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  onSelectConversation: (id: any) => void;
-  isTypingId: any;
-  mutedChats: Record<string | number, boolean>;
+  mutedChats?: Record<string | number, boolean>;
+  onSelectConversation?: (id: any) => void;
 }
 
 export function Sidebar({
-  conversations,
-  activeChatId,
-  searchQuery,
-  setSearchQuery,
+  mutedChats = {},
   onSelectConversation,
-  isTypingId,
-  mutedChats,
 }: SidebarProps) {
+  const storeConversations = useChatStore((state) => state.conversations);
+  const friends = useChatStore((state) => state.friends);
+  const friendRequests = useChatStore((state) => state.friendRequests);
+  const searchResults = useChatStore((state) => state.searchResults);
+  const searchQuery = useChatStore((state) => state.searchQuery);
+  const activeChatId = useChatStore((state) => state.activeChatId);
+  const messages = useChatStore((state) => state.messages);
+  const isSearching = useChatStore((state) => state.isSearching);
+
   const getFriends = useChatStore((state) => state.getFriends);
   const getFriendRequests = useChatStore((state) => state.getFriendRequests);
   const getConversations = useChatStore((state) => state.getConversations);
-  const searchResults = useChatStore((state) => state.searchResults);
   const searchUser = useChatStore((state) => state.searchUser);
-  const isSearching = useChatStore((state) => state.isSearching);
-  const friendRequests = useChatStore((state) => state.friendRequests);
-  const friends = useChatStore((state) => state.friends);
   const sendFriendRequest = useChatStore((state) => state.sendFriendRequest);
   const respondToFriendRequest = useChatStore(
     (state) => state.respondToFriendRequest,
   );
-  const sidebarTab = useChatStore((state) => state.sidebarTab);
+  const setSearchQuery = useChatStore((state) => state.setSearchQuery);
   const setSidebarTab = useChatStore((state) => state.setSidebarTab);
+  const setActiveChatId = useChatStore((state) => state.setActiveChatId);
+
+  const onlineUsers = useAuthStore((state) => state.onlineUsers);
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "chats" | "contacts" | "discover" | "requests"
+  >("chats");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"chats" | "contacts" | "discover" | "requests">("chats");
+  const debounceQuery = useDebounce(searchQuery, 400);
 
   useEffect(() => {
     getFriends();
@@ -69,12 +93,83 @@ export function Sidebar({
     getConversations();
   }, [getFriends, getFriendRequests, getConversations]);
 
-  // Sync tab with store if needed
+  // Trigger search on backend when debounceQuery changes and tab is discover
   useEffect(() => {
-    if (activeTab === "discover" && searchQuery.trim().length >= 3) {
-      searchUser(searchQuery);
+    if (activeTab === "discover" && debounceQuery.trim().length >= 3) {
+      searchUser(debounceQuery);
     }
-  }, [searchQuery, activeTab, searchUser]);
+  }, [debounceQuery, activeTab, searchUser]);
+
+  const handleSelect = (id: any) => {
+    setActiveChatId(id);
+    if (onSelectConversation) {
+      onSelectConversation(id);
+    }
+  };
+
+  const conversationsList = useMemo(() => {
+    const list = activeTab === "chats" ? storeConversations : friends;
+
+    const formatted = list.map((item: any) => {
+      const isSelected = String(item._id) === String(activeChatId);
+      const chatMessages = isSelected ? messages : [];
+
+      const lastMsgText = item.lastMessage?.message || "";
+      const lastMsgTime = item.lastMessage?.createdAt
+        ? new Date(item.lastMessage.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "";
+      const lastMsgMediaType = item.lastMessage?.mediaType || undefined;
+      const lastMsgMediaUrl = item.lastMessage?.mediaUrl || undefined;
+
+      const fallbackLastMsg =
+        lastMsgText || lastMsgMediaType
+          ? [
+              {
+                id: "last",
+                text: lastMsgText,
+                sender: "them" as "me" | "them",
+                timestamp: lastMsgTime,
+                mediaType: lastMsgMediaType,
+                mediaUrl: lastMsgMediaUrl,
+              },
+            ]
+          : [];
+
+      const unreadCount = isSelected ? 0 : item.unreadCount || 0;
+
+      return {
+        id: item._id,
+        name: item.fullName || item.username || "User",
+        avatarColor:
+          item.avatarColor ||
+          getDeterministicColor(item.fullName || item.username || "User"),
+        status: onlineUsers.includes(item._id) ? "Online" : "Offline",
+        unread: unreadCount > 0,
+        unreadCount,
+        messages: chatMessages.length > 0 ? chatMessages : fallbackLastMsg,
+        replies: [],
+      };
+    });
+
+    if (!searchQuery.trim()) return formatted;
+    const q = searchQuery.toLowerCase();
+    return formatted.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.messages.some((m: any) => m.text?.toLowerCase().includes(q)),
+    );
+  }, [
+    activeTab,
+    storeConversations,
+    friends,
+    activeChatId,
+    messages,
+    onlineUsers,
+    searchQuery,
+  ]);
 
   const handleSendRequest = async (targetUserId: string) => {
     setLoadingActionId(targetUserId);
@@ -105,12 +200,17 @@ export function Sidebar({
     }
   };
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   return (
     <div className="w-full h-full bg-white/80 dark:bg-[#1E2024]/85 backdrop-blur-3xl rounded-[26px] border border-white/40 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden select-none">
-      {/* Settings Modal (Desktop + Mobile) */}
-      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+      {/* Code-split Lazy Settings Modal */}
+      {isSettingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal
+            open={isSettingsOpen}
+            onOpenChange={setIsSettingsOpen}
+          />
+        </Suspense>
+      )}
 
       {/* Sidebar Header */}
       <div className="sidebar-header">
@@ -267,22 +367,23 @@ export function Sidebar({
 
       {/* Main Content Area */}
       <div className="conversations-list overflow-y-auto">
-        {sidebarTab === "chats" ? (
-          /* Chats List */
-          conversations.length === 0 ? (
+        {activeTab === "chats" || activeTab === "contacts" ? (
+          /* Chats / Contacts List */
+          conversationsList.length === 0 ? (
             <div className="p-5 text-center text-xs text-muted-foreground">
-              No conversations found.
+              {activeTab === "chats"
+                ? "No conversations found."
+                : "No contacts found."}
             </div>
           ) : (
-            conversations.map((conv) => (
+            conversationsList.map((conv) => (
               <ConversationItem
                 key={conv.id}
                 conv={conv}
-                isActive={activeChatId === conv.id}
-                isTyping={isTypingId === conv.id}
+                isActive={String(activeChatId) === String(conv.id)}
+                isTyping={false}
                 isMuted={!!mutedChats[conv.id]}
-                //isMessageDisable={true}
-                onClick={() => onSelectConversation(conv.id)}
+                onClick={() => handleSelect(conv.id)}
               />
             ))
           )
@@ -458,15 +559,15 @@ export function Sidebar({
                       </p>
                     </div>
                   ) : (
-                    conversations.map((conv) => (
+                    conversationsList.map((conv) => (
                       <ConversationItem
                         key={conv.id}
                         conv={conv}
-                        isActive={activeChatId === conv.id}
-                        isTyping={isTypingId === conv.id}
+                        isActive={String(activeChatId) === String(conv.id)}
+                        isTyping={false}
                         isMuted={!!mutedChats[conv.id]}
                         isMessageDisable={false}
-                        onClick={() => onSelectConversation(conv.id)}
+                        onClick={() => handleSelect(conv.id)}
                       />
                     ))
                   )}

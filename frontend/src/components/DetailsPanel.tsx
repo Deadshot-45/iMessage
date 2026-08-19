@@ -11,13 +11,15 @@ import type { Conversation } from "../types";
 import { WallpaperToggle } from "./wallpaper-toggle";
 import { AccentToggle } from "./accent-toggle";
 import { ModeToggle } from "./mode-toggle";
-import { useState } from "react";
+import { useChatStore } from "@/store/useChatStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useMemo, useState } from "react";
 
 interface DetailsPanelProps {
-  activeChat: Conversation;
-  isMuted: boolean;
-  onToggleMute: () => void;
-  onClearHistory: () => void;
+  activeChat?: Conversation | null;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  onClearHistory?: () => void;
   onClose: () => void;
   isOpen?: boolean;
   isFullScreenModal?: boolean;
@@ -31,18 +33,49 @@ const SAMPLE_PHOTOS = [
 ];
 
 export function DetailsPanel({
-  activeChat,
-  isMuted,
+  activeChat: propActiveChat,
+  isMuted: propIsMuted = false,
   onToggleMute,
   onClearHistory,
   onClose,
   isFullScreenModal = false,
 }: DetailsPanelProps) {
   const [shareFocus, setShareFocus] = useState(true);
+  const [localMuted, setLocalMuted] = useState(false);
 
-  const initials = activeChat.name
+  const isMuted = propIsMuted !== undefined ? propIsMuted : localMuted;
+  const toggleMute = onToggleMute || (() => setLocalMuted((prev) => !prev));
+
+  const activeChatId = useChatStore((state) => state.activeChatId);
+  const storeConversations = useChatStore((state) => state.conversations);
+  const friends = useChatStore((state) => state.friends);
+  const messages = useChatStore((state) => state.messages);
+  const onlineUsers = useAuthStore((state) => state.onlineUsers);
+
+  const activeChat = useMemo(() => {
+    if (propActiveChat) return propActiveChat;
+    if (!activeChatId) return null;
+
+    const all = [...storeConversations, ...friends];
+    const found = all.find((c) => String(c._id || c.id) === String(activeChatId));
+    if (!found) return null;
+
+    return {
+      id: found._id || found.id,
+      name: found.fullName || found.username || found.name || "User",
+      avatarColor: found.avatarColor || "#007aff",
+      status: onlineUsers.includes(found._id || found.id) ? "Online" : "Offline",
+      unread: false,
+      messages: messages,
+      replies: [],
+    };
+  }, [propActiveChat, activeChatId, storeConversations, friends, messages, onlineUsers]);
+
+  if (!activeChat) return null;
+
+  const initials = (activeChat.name || "U")
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("");
 
   // Extract media items from current conversation messages or sample fallback
@@ -188,7 +221,7 @@ export function DetailsPanel({
               <input
                 type="checkbox"
                 checked={isMuted}
-                onChange={onToggleMute}
+                onChange={toggleMute}
               />
               <span className="slider"></span>
             </label>
