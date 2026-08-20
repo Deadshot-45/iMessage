@@ -6,6 +6,8 @@ import {
   Image as PhotoIcon,
   Trash2,
   ChevronLeft,
+  Play,
+  Pause,
 } from "lucide-react";
 import type { Conversation } from "../types";
 import { WallpaperToggle } from "./wallpaper-toggle";
@@ -13,7 +15,7 @@ import { AccentToggle } from "./accent-toggle";
 import { ModeToggle } from "./mode-toggle";
 import { useChatStore } from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 interface DetailsPanelProps {
   activeChat?: Conversation | null;
@@ -25,12 +27,89 @@ interface DetailsPanelProps {
   isFullScreenModal?: boolean;
 }
 
-const SAMPLE_PHOTOS = [
-  "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&auto=format&fit=crop&q=80", // coffee
-  "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=400&auto=format&fit=crop&q=80", // city skyline
-  "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&auto=format&fit=crop&q=80", // golden retriever
-  "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&auto=format&fit=crop&q=80", // sushi
-];
+interface AudioThumbnailProps {
+  src: string;
+}
+
+export function AudioThumbnail({ src }: AudioThumbnailProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState<number | null>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+    };
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [src]);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (secs: number) => {
+    if (isNaN(secs) || secs === 0) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  return (
+    <div
+      className="w-full h-full flex flex-col items-center justify-between p-2 bg-linear-to-br from-blue-500/10 to-[#0070eb]/20 dark:from-[#0070eb]/20 dark:to-blue-600/10 text-primary transition-all hover:brightness-105 select-none relative"
+      onClick={togglePlay}
+    >
+      <audio ref={audioRef} src={src} preload="metadata" />
+      <div className="flex-1 flex items-center justify-center relative w-full">
+        <button
+          type="button"
+          className="size-7.5 rounded-full bg-[#0070eb] dark:bg-blue-600 text-white flex items-center justify-center transition-all active:scale-90 border-0 cursor-pointer shadow-xs z-10"
+        >
+          {isPlaying ? (
+            <Pause size={12} className="fill-white text-white" />
+          ) : (
+            <Play size={12} className="fill-white text-white ml-0.5" />
+          )}
+        </button>
+
+        {isPlaying && (
+          <span className="absolute size-9 rounded-full bg-[#0070eb]/30 dark:bg-blue-600/30 animate-ping" />
+        )}
+      </div>
+
+      <div className="flex flex-col items-center gap-0.5 w-full shrink-0">
+        <span className="text-[9px] font-bold tracking-wider text-muted-foreground uppercase leading-none">
+          Voice
+        </span>
+        <span className="text-[10px] font-bold text-foreground opacity-90 leading-none">
+          {duration ? formatTime(duration) : "0:05"}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function DetailsPanel({
   activeChat: propActiveChat,
@@ -81,7 +160,7 @@ export function DetailsPanel({
 
   // Extract media items from current conversation messages or sample fallback
   const mediaMessages = activeChat.messages.filter(
-    (m) => m.mediaUrl && !m.isDeleted,
+    (m) => m.mediaUrl && !m.isDeleted && m.mediaUrl,
   );
 
   return (
@@ -94,7 +173,7 @@ export function DetailsPanel({
     >
       {/* Top Header Navigation (Only shown in mobile modal mode) */}
       {isFullScreenModal && (
-        <div className="p-4 flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08] shrink-0">
+        <div className="p-4 flex items-center justify-between border-b border-black/6 dark:border-white/8 shrink-0">
           <button
             type="button"
             className="flex items-center gap-1 text-sm font-semibold text-primary hover:opacity-80 bg-transparent border-0 cursor-pointer p-0"
@@ -177,38 +256,34 @@ export function DetailsPanel({
             Photos
           </h3>
           <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden">
-            {mediaMessages.length > 0
-              ? mediaMessages.slice(0, 5).map((m) => (
-                  <div
-                    key={m.id}
-                    className="aspect-square bg-black/10 dark:bg-white/5 rounded-xl overflow-hidden relative cursor-pointer group shadow-2xs"
-                  >
-                    {m.mediaType === "video" ? (
-                      <video
-                        src={m.mediaUrl}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
+            {mediaMessages.length > 0 ? (
+              mediaMessages.slice(0, 5).map((m) => (
+                <div
+                  key={m.id}
+                  className="aspect-square bg-black/10 dark:bg-white/5 rounded-xl overflow-hidden relative cursor-pointer group shadow-2xs"
+                >
+                  {m.mediaType === "video" ? (
+                    <video
+                      src={m.mediaUrl}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    m.mediaType ===
+                    "image" ? (
                       <img
                         src={m.mediaUrl}
                         alt="Photo"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                    )}
-                  </div>
-                ))
-              : SAMPLE_PHOTOS.map((src, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square bg-black/10 dark:bg-white/5 rounded-xl overflow-hidden relative cursor-pointer group shadow-2xs"
-                  >
-                    <img
-                      src={src}
-                      alt="Sample"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ))}
+                    ) : (
+                      <AudioThumbnail src={m.mediaUrl || ""} />
+                    )
+                  )}
+                </div>
+              ))
+            ) : (
+              <></>
+            )}
             <div className="aspect-square bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
               <PhotoIcon size={18} className="text-muted-foreground" />
             </div>
@@ -216,7 +291,7 @@ export function DetailsPanel({
         </div>
 
         {/* Grouped macOS Settings Card */}
-        <div className="bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl p-4 border border-black/5 dark:border-white/5 flex flex-col gap-3.5 shadow-2xs">
+        <div className="bg-black/3 dark:bg-white/4 rounded-2xl p-4 border border-black/5 dark:border-white/5 flex flex-col gap-3.5 shadow-2xs">
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-foreground">
               Mute Alerts
