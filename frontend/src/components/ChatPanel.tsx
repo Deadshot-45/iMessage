@@ -12,6 +12,7 @@ import {
   Loader2,
   X,
   Trash2,
+  Square,
 } from "lucide-react";
 import type { Conversation, Message } from "../types";
 import { useChatStore } from "@/store/useChatStore";
@@ -242,6 +243,49 @@ export function ChatPanel({
     setIsRecording(false);
     setRecordingDuration(0);
     audioChunksRef.current = [];
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setIsRecording(false);
+      return;
+    }
+
+    recorder.onstop = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      const mimeType = recorder.mimeType || "audio/webm";
+      const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+      const extension = mimeType.includes("mp4")
+        ? "mp4"
+        : mimeType.includes("ogg")
+          ? "ogg"
+          : "webm";
+      const audioFile = new File(
+        [audioBlob],
+        `voice-note-${Date.now()}.${extension}`,
+        {
+          type: mimeType,
+          lastModified: Date.now(),
+        },
+      );
+
+      setIsRecording(false);
+      setRecordingDuration(0);
+      audioChunksRef.current = [];
+      setSelectedFile(audioFile);
+    };
+
+    recorder.stop();
   };
 
   const stopAndSendRecording = () => {
@@ -689,7 +733,7 @@ export function ChatPanel({
               ))}
             </div>
 
-            {/* Cancel (Trash) & Send (Up Arrow) Buttons */}
+            {/* Cancel (Trash), Stop (Square), & Send (Up Arrow) Buttons */}
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -698,6 +742,14 @@ export function ChatPanel({
                 title="Cancel recording"
               >
                 <Trash2 size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="size-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors border-0 cursor-pointer"
+                title="Stop recording"
+              >
+                <Square size={14} className="fill-current" />
               </button>
               <button
                 type="button"
