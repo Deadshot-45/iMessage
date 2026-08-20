@@ -36,11 +36,20 @@ app.use(cookieParser());
 app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "OK", success: true });
 });
+// Primary API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/e2ee", e2eeRoutes);
+
+// Compatibility Alias (in case client cached double prefix)
+app.use("/api/api/e2ee", e2eeRoutes);
+app.use("/api/api/auth", authRoutes);
+app.use("/api/api/message", messageRoutes);
+app.use("/api/api/users", userRoutes);
+app.use("/api/api/friends", friendRoutes);
+
 app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "Chat App Backend API is running with TypeScript!" });
 });
