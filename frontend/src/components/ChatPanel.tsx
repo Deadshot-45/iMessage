@@ -552,7 +552,7 @@ export function ChatPanel({
               </span>
             </div>
 
-            {activeChat.messages.map((msg: Message, index:Number) => {
+            {activeChat.messages.map((msg: Message, index:number) => {
               const isSent = msg.sender === "me";
               const showStatus =
                 isSent && index === activeChat.messages.length - 1;
