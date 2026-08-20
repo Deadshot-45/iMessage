@@ -11,6 +11,7 @@ import {
   ArrowUp,
   Loader2,
   X,
+  Trash2,
 } from "lucide-react";
 import type { Conversation, Message } from "../types";
 import { useChatStore } from "@/store/useChatStore";
@@ -64,6 +65,14 @@ export function ChatPanel({
   const setInputText = propSetInputText || setLocalInputText;
   const selectedFile = propSelectedFile !== undefined ? propSelectedFile : localSelectedFile;
   const setSelectedFile = propSetSelectedFile || setLocalSelectedFile;
+
+  // Voice recording state & refs
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeChatId = useChatStore((state) => state.activeChatId);
   const storeMessages = useChatStore((state) => state.messages);
@@ -157,6 +166,142 @@ export function ChatPanel({
       unsubscribeFromMessages();
     };
   }, [activeChatId, getMessages, subscribeToMessage, unsubscribeFromMessages]);
+
+  // Clean up recording timers and streams on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Audio recording is not supported in your browser.");
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      let mimeType = "audio/webm";
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported("audio/webm")) {
+          mimeType = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+          mimeType = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
+          mimeType = "audio/ogg";
+        } else {
+          mimeType = "";
+        }
+      }
+
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Microphone access failed:", err);
+      alert("Microphone permission denied or not available. Please allow microphone access.");
+    }
+  };
+
+  const cancelRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingDuration(0);
+    audioChunksRef.current = [];
+  };
+
+  const stopAndSendRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setIsRecording(false);
+      return;
+    }
+
+    recorder.onstop = async () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      const mimeType = recorder.mimeType || "audio/webm";
+      const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+      const extension = mimeType.includes("mp4")
+        ? "mp4"
+        : mimeType.includes("ogg")
+          ? "ogg"
+          : "webm";
+      const audioFile = new File(
+        [audioBlob],
+        `voice-note-${Date.now()}.${extension}`,
+        {
+          type: mimeType,
+          lastModified: Date.now(),
+        },
+      );
+
+      setIsRecording(false);
+      setRecordingDuration(0);
+      audioChunksRef.current = [];
+
+      if (activeChatId) {
+        try {
+          await sendMessage(String(activeChatId), {
+            chatMedia: audioFile,
+            message: "",
+          });
+        } catch {
+          // Handled in store
+        }
+      }
+    };
+
+    recorder.stop();
+  };
+
+  const formatDuration = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
 
   const handleSend = async () => {
     if ((!inputText.trim() && !selectedFile) || !activeChatId) return;
@@ -265,7 +410,7 @@ export function ChatPanel({
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none relative">
       {/* TopAppBar (Fixed 52px Header) */}
-      <div className="flex justify-between items-center h-13 px-6 w-full border-b border-black/8 dark:border-white/8 backdrop-blur-md bg-white/80 dark:bg-[#16171d]/80 absolute top-0 z-10 shrink-0">
+      <div className="flex justify-between items-center h-13 px-2 md:px-6 w-full border-b border-black/8 dark:border-white/8 backdrop-blur-md bg-white/80 dark:bg-[#16171d]/80 absolute top-0 z-10 shrink-0">
         <div className="flex items-center gap-2">
           {/* Mobile Back button */}
           <button
@@ -338,7 +483,7 @@ export function ChatPanel({
             onClick={() => setShowDetails(!showDetails)}
             title="Details"
           >
-            <Info size={19} className="fill-current" />
+            <Info size={19} className="" />
           </button>
         </div>
       </div>
@@ -420,9 +565,7 @@ export function ChatPanel({
                             onOpenFullscreen={(url, type) =>
                               setLightboxMedia({ url, type })
                             }
-                            onDeleteMessage={() =>
-                              deleteMessage(String(msg.id))
-                            }
+                            onDeleteMessage={() => deleteMessage(String(msg.id))}
                           />
                         )}
                         {msg.text && (
@@ -521,67 +664,115 @@ export function ChatPanel({
           </div>
         )}
 
-        {/* Input Capsule */}
-        <div className="flex items-center gap-2 bg-black/5 dark:bg-white/8 backdrop-blur-xl rounded-2xl p-2 border border-black/5 dark:border-white/10 shadow-xs">
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*,video/*,audio/*"
-            onChange={handleFileChange}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-8 h-8 rounded-full text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors shrink-0 border-0 bg-transparent cursor-pointer"
-            title="Attach file"
-          >
-            {sendingMedia ? (
-              <Loader2 size={18} className="animate-spin text-primary" />
-            ) : (
-              <Plus size={20} />
-            )}
-          </button>
+        {/* Input Capsule or Active Voice Recording Bar */}
+        {isRecording ? (
+          <div className="flex items-center justify-between gap-3 bg-red-500/10 dark:bg-red-500/15 backdrop-blur-xl rounded-2xl p-2 px-3 border border-red-500/30 shadow-xs animate-in fade-in duration-200">
+            {/* Red Pulsing Dot & Recording Duration */}
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-red-500 animate-pulse shadow-xs" />
+              <span className="text-xs font-mono font-bold text-red-600 dark:text-red-400">
+                {formatDuration(recordingDuration)}
+              </span>
+            </div>
 
-          <div className="flex-1 relative">
-            <textarea
-              className="w-full bg-transparent border-0 focus:outline-hidden resize-none max-h-32 text-[15px] text-foreground placeholder:text-muted-foreground p-0 m-0 leading-snug"
-              placeholder={sendingMedia ? "Uploading attachment..." : "iMessage"}
-              rows={1}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyPress}
-              disabled={sendingMedia}
+            {/* Pulsing Audio Waveform Visualizer */}
+            <div className="flex items-center gap-0.75 h-5 px-2 flex-1 justify-center max-w-50">
+              {[10, 18, 14, 24, 16, 22, 12, 20, 15, 10].map((h, i) => (
+                <div
+                  key={i}
+                  className="w-0.75 bg-red-500/70 dark:bg-red-400/70 rounded-full animate-pulse"
+                  style={{
+                    height: `${h}px`,
+                    animationDelay: `${(i % 4) * 0.15}s`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Cancel (Trash) & Send (Up Arrow) Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={cancelRecording}
+                className="size-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-red-500/20 text-muted-foreground hover:text-red-600 flex items-center justify-center transition-colors border-0 cursor-pointer"
+                title="Cancel recording"
+              >
+                <Trash2 size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={stopAndSendRecording}
+                className="size-8 rounded-full bg-[#0070eb] hover:bg-[#0058bc] text-white flex items-center justify-center transition-all border-0 cursor-pointer shadow-xs active:scale-95"
+                title="Send voice note"
+              >
+                <ArrowUp size={17} className="stroke-[2.5]" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 bg-black/5 dark:bg-white/8 backdrop-blur-xl rounded-2xl p-2 border border-black/5 dark:border-white/10 shadow-xs">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*,video/*,audio/*"
+              onChange={handleFileChange}
             />
-          </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-8 h-8 rounded-full text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors shrink-0 border-0 bg-transparent cursor-pointer"
+              title="Attach file"
+            >
+              {sendingMedia ? (
+                <Loader2 size={18} className="animate-spin text-primary" />
+              ) : (
+                <Plus size={20} />
+              )}
+            </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer p-1"
-            >
-              <Smile size={20} />
-            </button>
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer p-1"
-            >
-              <Mic size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={(!inputText.trim() && !selectedFile) || sendingMedia}
-              className={`w-8 h-8 rounded-full bg-[#0070eb] text-white flex items-center justify-center transition-opacity border-0 cursor-pointer shrink-0 ${
-                (!inputText.trim() && !selectedFile) || sendingMedia
-                  ? "opacity-40 cursor-not-allowed"
-                  : "opacity-100 hover:bg-[#0058bc]"
-              }`}
-            >
-              <ArrowUp size={17} className="stroke-[2.5]" />
-            </button>
+            <div className="flex-1 relative">
+              <textarea
+                className="w-full bg-transparent border-0 focus:outline-hidden resize-none max-h-32 text-[15px] text-foreground placeholder:text-muted-foreground p-0 m-0 leading-snug"
+                placeholder={sendingMedia ? "Uploading attachment..." : "iMessage"}
+                rows={1}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyPress}
+                disabled={sendingMedia}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer p-1"
+              >
+                <Smile size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={startRecording}
+                className="text-muted-foreground hover:text-[#0070eb] transition-colors border-0 bg-transparent cursor-pointer p-1"
+                title="Record voice note"
+              >
+                <Mic size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={(!inputText.trim() && !selectedFile) || sendingMedia}
+                className={`w-8 h-8 rounded-full bg-[#0070eb] text-white flex items-center justify-center transition-opacity border-0 cursor-pointer shrink-0 ${
+                  (!inputText.trim() && !selectedFile) || sendingMedia
+                    ? "opacity-40 cursor-not-allowed"
+                    : "opacity-100 hover:bg-[#0058bc]"
+                }`}
+              >
+                <ArrowUp size={17} className="stroke-[2.5]" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Code-split Lazy Lightbox Modal */}

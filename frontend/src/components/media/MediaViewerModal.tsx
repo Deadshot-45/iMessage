@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, Download, Share2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "../ui/button";
 
 interface MediaViewerModalProps {
   mediaUrl: string;
@@ -9,13 +10,6 @@ interface MediaViewerModalProps {
   timestamp?: string;
   galleryItems?: { url: string; type: string }[];
 }
-
-const SAMPLE_GALLERY = [
-  { url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80", type: "image" },
-  { url: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&auto=format&fit=crop&q=80", type: "image" },
-  { url: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80", type: "image" },
-  { url: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80", type: "image" },
-];
 
 export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   mediaUrl,
@@ -27,7 +21,6 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 }) => {
   const items = galleryItems && galleryItems.length > 0 ? galleryItems : [
     { url: mediaUrl, type: mediaType },
-    ...SAMPLE_GALLERY
   ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,7 +61,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     >
       {/* Top Header Bar with Traffic Lights (Image 4) */}
       <div
-        className="w-full flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent z-10 border-b border-white/8"
+        className="w-full flex items-center justify-between px-6 py-4 bg-linear-to-b from-black/80 to-transparent z-10 border-b border-white/8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* macOS Traffic Lights */}
@@ -132,18 +125,21 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
       {/* Main Center Stage with Navigation Arrows */}
       <div
-        className="flex-1 flex items-center justify-between px-6 overflow-hidden relative"
+        className="flex-1 flex items-center justify-between sm:px-6 overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left Arrow */}
-        <button
+        <Button
           type="button"
-          onClick={() => setCurrentIndex((i) => (i > 0 ? i - 1 : items.length - 1))}
-          className="size-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-all border-0 backdrop-blur-md z-10"
+          variant="ghost"
+          onClick={() =>
+            setCurrentIndex((i) => (i > 0 ? i - 1 : items.length - 1))
+          }
+          className="size-11 rounded-full text-white flex items-center justify-center cursor-pointer transition-all border-0 absolute lft-0 z-10"
           title="Previous"
         >
           <ChevronLeft size={22} />
-        </button>
+        </Button>
 
         {/* Center Media View */}
         <div className="flex-1 flex items-center justify-center p-4 max-h-[70vh]">
@@ -164,14 +160,17 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         </div>
 
         {/* Right Arrow */}
-        <button
+        <Button
           type="button"
-          onClick={() => setCurrentIndex((i) => (i < items.length - 1 ? i + 1 : 0))}
-          className="size-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-all border-0 backdrop-blur-md z-10"
+          variant="ghost"
+          onClick={() =>
+            setCurrentIndex((i) => (i < items.length - 1 ? i + 1 : 0))
+          }
+          className="size-11 rounded-full text-primary hover:text-primary hover:bg-primary/10 flex items-center justify-center cursor-pointer transition-all border-0 absolute right-0 z-10"
           title="Next"
         >
           <ChevronRight size={22} />
-        </button>
+        </Button>
       </div>
 
       {/* Bottom Thumbnail Filmstrip Carousel */}
