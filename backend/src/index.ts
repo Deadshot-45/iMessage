@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import messageRoutes from "./routes/message.route.js";
 import friendRoutes from "./routes/friend.route.js";
+import e2eeRoutes from "./routes/e2ee.route.js";
 import { app, server, isOriginAllowed } from "./lib/socket.js";
 
 const PORT = process.env.PORT || 3000;
@@ -38,10 +39,11 @@ app.get("/health", (req: Request, res: Response) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/friends", friendRoutes);
+app.use("/api/e2ee", e2eeRoutes);
 app.get("/api", (req: Request, res: Response) => {
   res.json({ message: "Chat App Backend API is running with TypeScript!" });
 });
-app.use("/api/friends", friendRoutes);
 
 // Serve Frontend Static Assets in Production
 const frontendDist = path.join(process.cwd(), "..", "frontend", "dist");

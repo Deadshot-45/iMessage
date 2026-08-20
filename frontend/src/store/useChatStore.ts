@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 import { soundManager } from "../lib/sound";
+import { encryptOutgoingMessage, decryptIncomingMessage } from "../lib/e2eeSession";
 
 interface ChatState {
   users: any[];
@@ -237,7 +238,21 @@ export const useChatStore = create<ChatState>()(
         set({ isMessagesLoading: true });
         try {
           const res = await axiosInstance.get(`/message/${userId}`);
-          set({ messages: res.data.conversations || [] });
+          const rawList = res.data.conversations || [];
+          const myId = useAuthStore.getState().authUser?._id || "";
+          
+          const decryptedList = await Promise.all(
+            rawList.map(async (msg: any) => {
+              if (msg.isEncrypted) {
+                const otherPartyId = String(msg.senderId) === String(myId) ? String(msg.receiverId) : String(msg.senderId);
+                const decryptedText = await decryptIncomingMessage(myId, otherPartyId, msg);
+                return { ...msg, message: decryptedText };
+              }
+              return msg;
+            })
+          );
+
+          set({ messages: decryptedList });
           // Mark received messages as read
           get().markMessagesAsRead(userId);
         } catch (error) {
@@ -293,6 +308,7 @@ export const useChatStore = create<ChatState>()(
 
       sendMessage: async (userId, { message, chatMedia, mediaType: directMediaType, thumbnailUrl: directThumb }) => {
         const optimisticId = `optimistic-${Date.now()}`;
+        const myId = useAuthStore.getState().authUser?._id || "";
         
         let determinedMediaType = directMediaType;
         if (!determinedMediaType && chatMedia) {
@@ -303,7 +319,7 @@ export const useChatStore = create<ChatState>()(
 
         const optimisticMsg = {
           _id: optimisticId,
-          senderId: useAuthStore.getState().authUser?._id || "",
+          senderId: myId,
           receiverId: userId,
           message: message || "",
           mediaUrl: chatMedia ? URL.createObjectURL(chatMedia) : undefined,
@@ -319,6 +335,12 @@ export const useChatStore = create<ChatState>()(
 
         try {
           if (chatMedia) set({ sendingMedia: true });
+
+          // Encrypt text message with E2EE
+          let e2eeData: any = {};
+          if (message && myId) {
+            e2eeData = await encryptOutgoingMessage(myId, String(userId), message);
+          }
 
           let uploadedMediaUrl = "";
           const uploadedMediaType = determinedMediaType || "";
@@ -357,7 +379,15 @@ export const useChatStore = create<ChatState>()(
 
             if (!usedDirectUpload) {
               const formData = new FormData();
-              formData.append("message", message);
+              formData.append("message", e2eeData.isEncrypted ? "" : message);
+              if (e2eeData.isEncrypted) {
+                formData.append("isEncrypted", "true");
+                formData.append("ciphertext", e2eeData.ciphertext);
+                formData.append("iv", e2eeData.iv);
+                formData.append("authTag", e2eeData.authTag || "");
+                if (e2eeData.x3dhHeader) formData.append("x3dhHeader", JSON.stringify(e2eeData.x3dhHeader));
+                if (e2eeData.ratchetHeader) formData.append("ratchetHeader", JSON.stringify(e2eeData.ratchetHeader));
+              }
               formData.append("chatMedia", chatMedia);
               if (determinedMediaType) formData.append("mediaType", determinedMediaType);
               
@@ -370,7 +400,7 @@ export const useChatStore = create<ChatState>()(
               if (newMsg) {
                 set({
                   messages: get().messages.map((msg) =>
-                    msg._id === optimisticId ? newMsg : msg
+                    msg._id === optimisticId ? { ...newMsg, message } : msg
                   ),
                 });
               }
@@ -378,9 +408,15 @@ export const useChatStore = create<ChatState>()(
             }
           }
 
-          // Step 3: Tell backend to save the message record with the CDN URL
+          // Step 3: Tell backend to save the message record with the CDN URL and E2EE fields
           const res = await axiosInstance.post(`/message/send/${userId}`, {
-            message,
+            message: e2eeData.isEncrypted ? "" : message,
+            isEncrypted: e2eeData.isEncrypted || false,
+            ciphertext: e2eeData.ciphertext || "",
+            iv: e2eeData.iv || "",
+            authTag: e2eeData.authTag || "",
+            x3dhHeader: e2eeData.x3dhHeader,
+            ratchetHeader: e2eeData.ratchetHeader,
             ...(uploadedMediaUrl && { mediaUrl: uploadedMediaUrl, mediaType: uploadedMediaType }),
             ...(directThumb && { thumbnailUrl: directThumb }),
             mediaSize: chatMedia?.size,
@@ -390,7 +426,7 @@ export const useChatStore = create<ChatState>()(
           if (newMsg) {
             set({
               messages: get().messages.map((msg) =>
-                msg._id === optimisticId ? newMsg : msg
+                msg._id === optimisticId ? { ...newMsg, message } : msg
               ),
             });
           }
@@ -418,14 +454,21 @@ export const useChatStore = create<ChatState>()(
 
         socket.on(
           "new:message",
-          (newMessage: any) => {
+          async (newMessage: any) => {
             if (String(newMessage.senderId) !== String(userId)) return;
 
             if (get().isSoundEnabled) {
               soundManager.playNotificationSound();
             }
 
-            set({ messages: [...get().messages, newMessage] });
+            const myId = useAuthStore.getState().authUser?._id || "";
+            let displayMsg = newMessage;
+            if (newMessage.isEncrypted) {
+              const decrypted = await decryptIncomingMessage(myId, String(userId), newMessage);
+              displayMsg = { ...newMessage, message: decrypted };
+            }
+
+            set({ messages: [...get().messages, displayMsg] });
             get().markMessagesAsRead(userId);
             get().getConversations();
           },

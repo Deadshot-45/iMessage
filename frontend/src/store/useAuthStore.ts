@@ -3,6 +3,7 @@ import { axiosInstance } from "../lib/axios";
 import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
 import Cookies from "js-cookie";
+import { initializeUserE2EE } from "../lib/e2eeSession";
 
 interface UserProfile {
   _id: string;
@@ -80,6 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         set({ authUser: user });
         get().connectSocket(user);
+        initializeUserE2EE(user._id).catch((e) => console.error("E2EE Init:", e));
       } else {
         set({ authUser: null });
       }
@@ -105,6 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         set({ authUser: user });
         get().connectSocket(user);
+        initializeUserE2EE(user._id).catch((e) => console.error("E2EE Init:", e));
         toast.success(`Welcome back, ${user.fullName || user.username}!`);
         return true;
       }
@@ -136,6 +139,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         set({ authUser: user });
         get().connectSocket(user);
+        initializeUserE2EE(user._id).catch((e) => console.error("E2EE Init:", e));
         toast.success(`Welcome to iMessage, ${user.fullName}!`);
         return true;
       }

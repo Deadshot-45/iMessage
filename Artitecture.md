@@ -31,6 +31,13 @@
    - 5.3 Empty States & Error Handling
 6. [Stitch AI Prompting Templates & Reference Guide](#6-stitch-ai-prompting-templates--reference-guide)
 7. [Code-to-Design Mapping Table](#7-code-to-design-mapping-table)
+8. [End-to-End Encryption (E2EE) Cryptographic Architecture](#8-end-to-end-encryption-e2ee-cryptographic-architecture)
+   - 8.1 Zero-Knowledge Threat & Trust Model
+   - 8.2 Client-Side Key Hierarchy & Web Crypto Primitives
+   - 8.3 Asynchronous Key Agreement (X3DH Protocol)
+   - 8.4 Message Ratcheting & Forward Secrecy
+   - 8.5 Progressive Media Out-of-Band Encryption
+   - 8.6 MITM Prevention (60-Digit Safety Numbers)
 
 ---
 
@@ -401,6 +408,60 @@ Glassmorphic background with subtle ambient wallpaper gradient.
 
 ---
 
+## 8. End-to-End Encryption (E2EE) Cryptographic Architecture
+
+### 8.1 Zero-Knowledge Threat & Trust Model
+The backend server and database operate as **untrusted, zero-knowledge relays**. Only communicating endpoints possess private cryptographic keys required to encrypt and decrypt payloads.
+
+```
++------------------------------------+             +------------------------------------+
+|          CLIENT A (Alice)          |             |          BACKEND SERVER & DB       |
+|  - IndexedDB: Private Keys         |             |  - Zero-Knowledge Relay            |
+|  - Web Crypto: ECDH / AES-256-GCM  |             |  - OPK Prekey Pool Dispenser       |
++------------------------------------+             +------------------------------------+
+                  │                                                  │
+                  │ 1. Fetch Bob Prekey Bundle                       │
+                  │─────────────────────────────────────────────────>│
+                  │ 2. Return Bob {IK_pub, SPK_pub, OPK_pub}         │
+                  │<─────────────────────────────────────────────────│
+                  │                                                  │
+                  │ 3. Compute X3DH Master Secret & Encrypt Message  │
+                  │ 4. Send Envelope {Ciphertext, IV, RatchetHeader} │
+                  │─────────────────────────────────────────────────>│
+                  │                                                  │ 5. Relay Envelope
+                  │                                                  │───> Client B (Bob)
+```
+
+### 8.2 Client-Side Key Hierarchy & Web Crypto Primitives
+- **Elliptic Curve Cryptography**: `ECDH` (P-256 / X25519) via Web Cryptography API (`crypto.subtle`).
+- **Key Derivation (KDF)**: `HKDF-SHA256` for deriving master session and per-message symmetric keys.
+- **Symmetric Cipher**: `AES-256-GCM` with unique 96-bit IVs and 128-bit authentication tags.
+- **Secure Key Isolation**: Client private keys and active ratchet session states are persisted strictly in browser `IndexedDB` (`imessage_e2ee_keystore`), completely isolated from `localStorage` and cookies.
+
+### 8.3 Asynchronous Key Agreement (X3DH Protocol)
+When Alice messages Bob (even if Bob is offline):
+1. Alice requests Bob's public prekey bundle from `/api/e2ee/prekeys/:userId`.
+2. The server returns Bob's Identity Key (`IK`), Signed Prekey (`SPK`), and single-use One-Time Prekey (`OPK`), atomically marking that OPK as consumed.
+3. Alice performs 4 Diffie-Hellman operations ($DH_1..DH_4$) and derives the shared master secret via `HKDF-SHA256`.
+
+### 8.4 Message Ratcheting & Forward Secrecy
+- **Per-Message KDF Ratchet**: Every message sent or received advances the symmetric ratchet chain, deriving a single-use message key and immediately wiping previous keys from client memory.
+- **Tombstone Deletions**: Deleting a message clears the local ciphertext and notifies peers via WebSocket tombstone events (`message:deleted`).
+
+### 8.5 Progressive Media Out-of-Band Encryption
+1. Files are encrypted client-side using `AES-256-GCM` with a random 256-bit media key and IV.
+2. The encrypted binary blob is uploaded directly to cloud media storage (ImageKit/CDN).
+3. The media key, IV, and SHA-256 integrity hash are encrypted via the Double Ratchet envelope and sent through the E2EE messaging channel.
+4. The receiver downloads the encrypted blob and decrypts it locally in the browser.
+
+### 8.6 MITM Prevention (60-Digit Safety Numbers)
+- **Deterministic Fingerprint**: Sorted hash of both parties' identity public keys:
+  $$\text{SafetyNumber} = \text{SHA-512}(\text{Sort}(IK_{A,\text{pub}}, IK_{B,\text{pub}}))$$
+- Formatted into 12 blocks of 5-digit numbers (e.g. `38491-92841-10294-...`) for in-person or out-of-band verification.
+
+---
+
 *Document maintained for iMessage Web engineering, Stitch AI generations, and Figma UI/UX design libraries.*
+
 
 

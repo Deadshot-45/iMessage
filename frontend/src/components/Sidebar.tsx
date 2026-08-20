@@ -190,6 +190,7 @@ export function Sidebar({
     messages,
     onlineUsers,
     searchQuery,
+    authUser?._id,
   ]);
 
   const handleSendRequest = async (targetUserId: string) => {

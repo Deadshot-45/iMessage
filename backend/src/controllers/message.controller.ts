@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import Message from "../models/message.model.js";
 import { hasImagekitConfig, uploadChatMedia, getAuthParams } from "../lib/imagekit.js";
 import { getRecieverSocketId, io } from "../lib/socket.js";
@@ -109,6 +109,11 @@ const getConversations = async (req: Request, res: Response) => {
             createdAt: "$lastMessage.createdAt",
             mediaUrl: "$lastMessage.mediaUrl",
             mediaType: "$lastMessage.mediaType",
+            isEncrypted: "$lastMessage.isEncrypted",
+            ciphertext: "$lastMessage.ciphertext",
+            iv: "$lastMessage.iv",
+            authTag: "$lastMessage.authTag",
+            ratchetHeader: "$lastMessage.ratchetHeader",
           },
         },
       },
@@ -202,6 +207,13 @@ const sendMessage = async (req: Request, res: Response) => {
       message,
       mediaUrl: clientMediaUrl,
       mediaType: clientMediaType,
+      isEncrypted,
+      ciphertext,
+      iv,
+      authTag,
+      ratchetHeader,
+      x3dhHeader,
+      mediaKeyCiphertext,
     } = req.body;
     const receiverId = req.params.id;
     const senderId = req.user?._id;
@@ -210,15 +222,17 @@ const sendMessage = async (req: Request, res: Response) => {
     let mediaType: "image" | "video" | "audio" | "gif" | "" = clientMediaType || "";
     let mediathumbnailUrl = "";
 
-    if ((!message && !file && !clientMediaUrl) || !receiverId || !senderId) {
+    const hasPayload = isEncrypted ? Boolean(ciphertext) : Boolean(message || file || clientMediaUrl);
+
+    if (!hasPayload || !receiverId || !senderId) {
       return res.status(400).json({
         success: false,
         status: 400,
-        message: "All fields are required",
+        message: "Message payload, receiverId, and senderId are required",
       });
     }
 
-    // In sendMessage controller:
+    // Verify friendship before allowing message send
     const isFriend = await Friendship.exists({
       $or: [
         { requester: senderId, recipient: receiverId, status: "accepted" },
@@ -242,7 +256,7 @@ const sendMessage = async (req: Request, res: Response) => {
           message: "Storage Service is not available, try again later.",
         });
       }
-      // here we upload media file
+      // upload media file
       const url = await uploadChatMedia(file);
       if (!url) {
         return res.status(503).json({
@@ -271,6 +285,13 @@ const sendMessage = async (req: Request, res: Response) => {
       senderId,
       receiverId,
       message: message || "",
+      isEncrypted: Boolean(isEncrypted),
+      ciphertext: ciphertext || "",
+      iv: iv || "",
+      authTag: authTag || "",
+      ratchetHeader: ratchetHeader || undefined,
+      x3dhHeader: x3dhHeader || undefined,
+      mediaKeyCiphertext: mediaKeyCiphertext || "",
       mediaUrl: mediaUrl || "",
       mediaType: mediaType || undefined,
       thumbnailUrl: mediathumbnailUrl || req.body.thumbnailUrl || "",
@@ -395,8 +416,10 @@ const deleteMessage = async (req: Request, res: Response) => {
     message.isDeleted = true;
     message.deletedAt = new Date();
     message.message = "This message was deleted";
+    message.ciphertext = "";
     message.mediaUrl = "";
     message.thumbnailUrl = "";
+    message.mediaKeyCiphertext = "";
     await message.save();
 
     // Broadcast deletion to both sender and receiver
@@ -459,4 +482,3 @@ export {
   deleteMessage,
   getUploadAuth,
 };
-
