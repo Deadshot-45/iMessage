@@ -1,4 +1,5 @@
 import axios, { type AxiosRequestConfig } from "axios";
+import Cookies from "js-cookie";
 
 const logError = (error: any, context?: string) => {
   console.error(`[${context || "Error"}]:`, error);
@@ -79,8 +80,13 @@ const getBaseUrl = () => {
   return "/api";
 };
 
+const getAuthCookie = () => {
+  const token = Cookies.get("jwt_token");
+  return token || null;
+};
+
 const BASE_URL = getBaseUrl();
-console.log("BASE_URL : ", BASE_URL, import.meta.env.MODE);
+
 /**
  * Custom Axios Instance
  */
@@ -94,19 +100,19 @@ export const api = axios.create({
 });
 
 // Request Interceptor: Attach Auth Token
-//api.interceptors.request.use(
-//  (config) => {
-//    const token = typeof window !== "undefined" ? getAuthCookie() : null;
-//    if (token) {
-//      config.headers.Authorization = `Bearer ${token}`;
-//    }
-//    return config;
-//  },
-//  (error) => {
-//    logError(error, "Axios Request Interceptor");
-//    return Promise.reject(normalizeApiError(error));
-//  },
-//);
+api.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== "undefined" ? getAuthCookie() : null;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    logError(error, "Axios Request Interceptor");
+    return Promise.reject(normalizeApiError(error));
+  },
+);
 
 // Response Interceptor: Catch and log non-2XX responses without crashing
 api.interceptors.response.use(

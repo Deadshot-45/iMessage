@@ -3,23 +3,20 @@ import multer from "multer";
 const storage = multer.memoryStorage();
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage,
   limits: {
-    fileSize: 25 * 1024 * 1024, // 25mb
+    fileSize: 25 * 1024 * 1024, // 25MB
   },
   fileFilter: (req, file, cb) => {
-    const filetypes = [
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-      "image/gif",
-      "video/mp4",
-      "video/webm",
-      "video/quicktime",
-    ];
-    if (!filetypes.includes(file.mimetype)) {
-      cb(null, false);
-      throw new Error("Invalid file type");
+    // Accept standard image, video, and audio MIME types
+    if (
+      file.mimetype.startsWith("image/") ||
+      file.mimetype.startsWith("video/") ||
+      file.mimetype.startsWith("audio/")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file format (${file.mimetype})`));
     }
   },
 });

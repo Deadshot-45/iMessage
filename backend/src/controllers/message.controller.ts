@@ -207,7 +207,7 @@ const sendMessage = async (req: Request, res: Response) => {
     const senderId = req.user?._id;
     const file = req.file;
     let mediaUrl = clientMediaUrl || "";
-    let mediaType: "image" | "video" | "" = clientMediaType || "";
+    let mediaType: "image" | "video" | "audio" | "gif" | "" = clientMediaType || "";
     let mediathumbnailUrl = "";
 
     if ((!message && !file && !clientMediaUrl) || !receiverId || !senderId) {
@@ -235,8 +235,8 @@ const sendMessage = async (req: Request, res: Response) => {
     }
 
     if (file) {
-      if (!hasImagekitConfig) {
-        return res.status(500).json({
+      if (!hasImagekitConfig()) {
+        return res.status(503).json({
           success: false,
           status: 503,
           message: "Storage Service is not available, try again later.",
@@ -254,10 +254,12 @@ const sendMessage = async (req: Request, res: Response) => {
 
       mediaUrl = url?.url ?? "";
       if (file.mimetype.startsWith("image/")) {
-        mediaType = "image";
+        mediaType = file.mimetype.includes("gif") ? "gif" : "image";
       } else if (file.mimetype.startsWith("video/")) {
         mediaType = "video";
         mediathumbnailUrl = url?.thumbnailUrl ?? "";
+      } else if (file.mimetype.startsWith("audio/")) {
+        mediaType = "audio";
       }
     }
 

@@ -10,6 +10,7 @@ import {
   Mic,
   ArrowUp,
   Loader2,
+  X,
 } from "lucide-react";
 import type { Conversation, Message } from "../types";
 import { useChatStore } from "@/store/useChatStore";
@@ -137,6 +138,14 @@ export function ChatPanel({
     type?: string;
   } | null>(null);
 
+  // Object URL for selected media preview
+  const previewUrl = useMemo(() => {
+    if (selectedFile && selectedFile.type.startsWith("image/")) {
+      return URL.createObjectURL(selectedFile);
+    }
+    return null;
+  }, [selectedFile]);
+
   // Message sync and socket subscription
   useEffect(() => {
     if (!activeChatId) return;
@@ -158,20 +167,28 @@ export function ChatPanel({
     }
 
     try {
-      if (selectedFile) {
+      const fileToSend = selectedFile;
+      const textToSend = inputText.trim();
+
+      // Clear input and preview immediately for smooth UI feedback
+      setSelectedFile(null);
+      setInputText("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      if (fileToSend) {
         await sendMessage(String(activeChatId), {
-          message: inputText.trim(),
-          chatMedia: selectedFile,
+          message: textToSend,
+          chatMedia: fileToSend,
         });
-        setSelectedFile(null);
       } else {
         await sendMessage(String(activeChatId), {
-          message: inputText.trim(),
+          message: textToSend,
         });
       }
-      setInputText("");
     } catch {
-      // handled in store
+      // Handled in chat store with optimistic error state
     }
   };
 
@@ -187,8 +204,8 @@ export function ChatPanel({
         return;
       }
 
-      if (file.size > 20 * 1024 * 1024) {
-        alert("File size exceeds maximum 20MB limit.");
+      if (file.size > 25 * 1024 * 1024) {
+        alert("File size exceeds maximum 25MB limit.");
         return;
       }
 
@@ -248,7 +265,7 @@ export function ChatPanel({
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none relative">
       {/* TopAppBar (Fixed 52px Header) */}
-      <div className="flex justify-between items-center h-[52px] px-6 w-full border-b border-black/[0.08] dark:border-white/[0.08] backdrop-blur-md bg-white/80 dark:bg-[#16171d]/80 absolute top-0 z-10 shrink-0">
+      <div className="flex justify-between items-center h-13 px-6 w-full border-b border-black/8 dark:border-white/8 backdrop-blur-md bg-white/80 dark:bg-[#16171d]/80 absolute top-0 z-10 shrink-0">
         <div className="flex items-center gap-2">
           {/* Mobile Back button */}
           <button
@@ -321,16 +338,14 @@ export function ChatPanel({
             onClick={() => setShowDetails(!showDetails)}
             title="Details"
           >
-            <Info size={19} className="!text-foreground!" style={{
-              color: "var(--foreground) !important"
-            }} />
+            <Info size={19} className="fill-current" />
           </button>
         </div>
       </div>
 
       {/* Chat Messages Timeline */}
       <div
-        className="flex-1 overflow-y-auto px-6 pt-18 pb-24 flex flex-col gap-3.5"
+        className="flex-1 overflow-y-auto px-6 pt-18 pb-28 flex flex-col gap-3.5"
         onClick={() => markMessagesAsRead(activeChat.id)}
       >
         {activeChat.messages.length === 0 ? (
@@ -343,7 +358,7 @@ export function ChatPanel({
           <>
             {/* Timestamp Badge */}
             <div className="text-center my-2">
-              <span className="text-[11px] text-muted-foreground bg-black/[0.05] dark:bg-white/[0.08] px-3 py-1 rounded-full backdrop-blur-md">
+              <span className="text-[11px] text-muted-foreground bg-black/5 dark:bg-white/8 px-3 py-1 rounded-full backdrop-blur-md">
                 Today 8:30 AM
               </span>
             </div>
@@ -405,7 +420,9 @@ export function ChatPanel({
                             onOpenFullscreen={(url, type) =>
                               setLightboxMedia({ url, type })
                             }
-                            onDeleteMessage={() => deleteMessage(String(msg.id))}
+                            onDeleteMessage={() =>
+                              deleteMessage(String(msg.id))
+                            }
                           />
                         )}
                         {msg.text && (
@@ -419,10 +436,10 @@ export function ChatPanel({
                     {/* Text Message Bubble */}
                     {!msg.mediaUrl && (
                       <div
-                        className={`px-4 py-2 text-[15px] leading-relaxed break-words ${
+                        className={`px-4 py-2 text-[15px] leading-relaxed wrap-break-word ${
                           isSent
-                            ? "bg-linear-to-br from-[#0070eb] to-[#0058bc] text-white rounded-[18px] rounded-br-[4px]"
-                            : "bg-[#e9e9eb] dark:bg-[#262629] text-[#181c23] dark:text-white rounded-[18px] rounded-bl-[4px]"
+                            ? "bg-linear-to-br from-[#0070eb] to-[#0058bc] text-white rounded-[18px] rounded-br-lg"
+                            : "bg-[#e9e9eb] dark:bg-[#262629] text-[#181c23] dark:text-white rounded-[18px] rounded-bl-lg"
                         }`}
                       >
                         {msg.isDeleted ? (
@@ -450,7 +467,7 @@ export function ChatPanel({
 
         {/* Typing Indicator */}
         {isTyping && (
-          <div className="flex gap-2 items-center self-start bg-[#e9e9eb] dark:bg-[#262629] px-4 py-3 rounded-[18px] rounded-bl-[4px]">
+          <div className="flex gap-2 items-center self-start bg-[#e9e9eb] dark:bg-[#262629] px-4 py-3 rounded-[18px] rounded-bl-lg">
             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" />
             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
@@ -461,8 +478,51 @@ export function ChatPanel({
       </div>
 
       {/* Input Composer */}
-      <div className="absolute bottom-0 w-full p-4 bg-linear-to-t from-white via-white/90 to-transparent dark:from-[#16171d] dark:via-[#16171d]/90 dark:to-transparent z-10">
-        <div className="flex items-center gap-2 bg-black/[0.05] dark:bg-white/[0.08] backdrop-blur-xl rounded-2xl p-2 border border-black/5 dark:border-white/10 shadow-xs">
+      <div className="absolute bottom-0 w-full p-4 bg-linear-to-t from-white via-white/90 to-transparent dark:from-[#16171d] dark:via-[#16171d]/90 dark:to-transparent z-10 flex flex-col gap-2">
+        {/* Selected Media Attachment Preview Card */}
+        {selectedFile && (
+          <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-xl rounded-2xl p-2.5 border border-black/10 dark:border-white/10 shadow-lg flex items-center justify-between animate-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center gap-3 min-w-0">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="size-12 rounded-xl object-cover border border-black/10 dark:border-white/10 shrink-0 shadow-2xs"
+                />
+              ) : selectedFile.type.startsWith("audio/") ? (
+                <div className="size-12 rounded-xl bg-blue-500/15 text-[#0070eb] flex items-center justify-center shrink-0">
+                  <Mic size={22} />
+                </div>
+              ) : (
+                <div className="size-12 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center shrink-0">
+                  <Video size={22} />
+                </div>
+              )}
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-foreground truncate max-w-55">
+                  {selectedFile.name}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="size-7 rounded-full bg-black/5 dark:bg-white/10 hover:bg-red-500/15 hover:text-red-500 text-muted-foreground flex items-center justify-center transition-colors border-0 cursor-pointer shrink-0"
+              title="Remove attachment"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Input Capsule */}
+        <div className="flex items-center gap-2 bg-black/5 dark:bg-white/8 backdrop-blur-xl rounded-2xl p-2 border border-black/5 dark:border-white/10 shadow-xs">
           <input
             type="file"
             ref={fileInputRef}
@@ -486,7 +546,7 @@ export function ChatPanel({
           <div className="flex-1 relative">
             <textarea
               className="w-full bg-transparent border-0 focus:outline-hidden resize-none max-h-32 text-[15px] text-foreground placeholder:text-muted-foreground p-0 m-0 leading-snug"
-              placeholder="iMessage"
+              placeholder={sendingMedia ? "Uploading attachment..." : "iMessage"}
               rows={1}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}

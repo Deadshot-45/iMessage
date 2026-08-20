@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
+import Cookies from "js-cookie";
 
 interface UserProfile {
   _id: string;
@@ -70,6 +71,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await axiosInstance.get("/auth/check");
       if (res.data && (res.data.success || res.data._id)) {
         const user = res.data;
+        if (user.token) {
+          Cookies.set("jwt_token", user.token, {
+            expires: 7,
+            secure: window.location.protocol === "https:",
+            sameSite: "lax",
+          });
+        }
         set({ authUser: user });
         get().connectSocket(user);
       } else {
@@ -92,6 +100,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (res.data && (res.data.success || res.data._id)) {
         const user = res.data;
+        if (user.token) {
+          Cookies.set("jwt_token", user.token, { expires: 7, secure: window.location.protocol === "https:", sameSite: "lax" });
+        }
         set({ authUser: user });
         get().connectSocket(user);
         toast.success(`Welcome back, ${user.fullName || user.username}!`);
@@ -120,6 +131,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (res.data && (res.data.success || res.data._id)) {
         const user = res.data;
+        if (user.token) {
+          Cookies.set("jwt_token", user.token, { expires: 7, secure: window.location.protocol === "https:", sameSite: "lax" });
+        }
         set({ authUser: user });
         get().connectSocket(user);
         toast.success(`Welcome to iMessage, ${user.fullName}!`);
@@ -148,6 +162,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearAuth: () => {
+    Cookies.remove("jwt_token");
     get().disconnectSocket();
     set({
       authUser: null,
