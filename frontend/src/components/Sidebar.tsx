@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   Search,
-  MoreVertical,
   UserPlus,
   Check,
   X,
@@ -10,7 +9,6 @@ import {
   Loader2,
   Users,
   LogOut,
-  Settings,
 } from "lucide-react";
 import { ConversationItem } from "./ConversationItem";
 import { ModeToggle } from "./mode-toggle";
@@ -204,7 +202,7 @@ export function Sidebar({
   };
 
   return (
-    <div className="w-full h-full bg-white/80 dark:bg-[#1E2024]/85 backdrop-blur-3xl rounded-[26px] border border-white/40 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden select-none">
+    <div className="w-full h-full flex flex-col overflow-hidden select-none">
       {/* Code-split Lazy Settings Modal */}
       {isSettingsOpen && (
         <Suspense fallback={null}>
@@ -235,38 +233,11 @@ export function Sidebar({
             >
               <span className="text-[14px] leading-none">✏️</span>
             </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 size-7 rounded-full cursor-pointer flex items-center justify-center transition-all duration-150 outline-none border-0 bg-transparent">
-                <MoreVertical size={16} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-52 p-2 rounded-2xl border border-black/8 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl shadow-2xl flex flex-col gap-1.5"
-              >
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold text-foreground cursor-pointer border-0 bg-transparent"
-                >
-                  <span>Settings...</span>
-                  <span className="text-[10px] text-muted-foreground">⌘,</span>
-                </button>
-                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
-                  Quick Themes
-                </div>
-                <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-xl justify-between">
-                  <WallpaperToggle />
-                  <AccentToggle />
-                  <ModeToggle />
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {/* Apple User Avatar & Profile Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="size-7 rounded-full text-white text-[11px] font-bold flex items-center justify-center cursor-pointer border-0 shadow-xs ring-1 ring-black/10 dark:ring-white/20 select-none outline-none"
+                className="size-7 rounded-full ml-2 text-white text-[11px] font-bold flex items-center justify-center cursor-pointer border-0 shadow-xs ring-1 ring-black/10 dark:ring-white/20 select-none outline-none"
                 style={{ backgroundColor: authUser?.avatarColor || "#007aff" }}
                 title={authUser?.fullName || "Account"}
               >
@@ -283,7 +254,9 @@ export function Sidebar({
                 <div className="px-2.5 py-2 flex items-center gap-2.5">
                   <div
                     className="size-8 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-xs"
-                    style={{ backgroundColor: authUser?.avatarColor || "#007aff" }}
+                    style={{
+                      backgroundColor: authUser?.avatarColor || "#007aff",
+                    }}
                   >
                     {(authUser?.fullName || authUser?.username || "U")
                       .split(" ")
@@ -304,11 +277,20 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-xs font-medium text-foreground cursor-pointer border-0 bg-transparent"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold text-foreground cursor-pointer border-0 bg-transparent"
                 >
-                  <Settings size={14} />
-                  <span>Preferences...</span>
+                  <span>Settings...</span>
+                  <span className="text-[10px] text-muted-foreground">⌘</span>
                 </button>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
+                  Quick Themes
+                </div>
+                <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-xl justify-between">
+                  <WallpaperToggle />
+                  <AccentToggle />
+                  <ModeToggle />
+                </div>
                 <button
                   type="button"
                   onClick={logout}
@@ -441,6 +423,7 @@ export function Sidebar({
                 isTyping={false}
                 isMuted={!!mutedChats[conv.id]}
                 onClick={() => handleSelect(conv.id)}
+                isMessageDisable={activeTab !== "contacts"}
               />
             ))
           )
@@ -637,4 +620,3 @@ export function Sidebar({
     </div>
   );
 }
-

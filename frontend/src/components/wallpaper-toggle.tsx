@@ -15,9 +15,9 @@ export function WallpaperToggle() {
         <Wallpaper className="size-4.5" />
       </DialogTrigger>
 
-      <DialogContent className="max-w-sm rounded-3xl border border-black/8 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-2xl">
+      <DialogContent className="max-w-sm rounded-3xl border border-black/8 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-2xl ">
         <DialogHeader className="mb-2">
-          <DialogTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-left">
+          <DialogTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground! text-left">
             Select Wallpaper
           </DialogTitle>
         </DialogHeader>

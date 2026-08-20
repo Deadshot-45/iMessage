@@ -22,10 +22,10 @@ export interface Conversation {
   id: string | number;
   name: string;
   avatarColor: string;
+  profilePic?: string;
   status: string;
   messages: Message[];
   unread: boolean;
   unreadCount?: number;
   replies: string[];
 }
-

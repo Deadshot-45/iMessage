@@ -53,7 +53,23 @@ body {
     var(--imessage-blue) 8%
   );
 
-  --app-bg: radial-gradient(ellipse at 15% 10%, rgba(74, 222, 128, 0.8) 0%, transparent 55%), radial-gradient(ellipse at 90% 90%, rgba(217, 70, 239, 0.85) 0%, transparent 60%), radial-gradient(ellipse at 50% 50%, rgba(99, 102, 241, 0.6) 0%, transparent 65%), linear-gradient(135deg, #22c55e 0%, #3b82f6 45%, #a855f7 75%, #d946ef 100%);
+  --app-bg:
+    radial-gradient(
+      ellipse at 15% 10%,
+      rgba(74, 222, 128, 0.8) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 90% 90%,
+      rgba(217, 70, 239, 0.85) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(99, 102, 241, 0.6) 0%,
+      transparent 65%
+    ),
+    linear-gradient(135deg, #22c55e 0%, #3b82f6 45%, #a855f7 75%, #d946ef 100%);
   --text-primary: #1d1d1f;
   --text-secondary: #86868b;
   --text-muted: #afafb6;
@@ -93,7 +109,23 @@ body {
     var(--imessage-blue) 10%
   );
 
-  --app-bg: radial-gradient(ellipse at 15% 10%, rgba(34, 197, 94, 0.45) 0%, transparent 55%), radial-gradient(ellipse at 90% 90%, rgba(168, 85, 247, 0.55) 0%, transparent 60%), radial-gradient(ellipse at 50% 50%, rgba(99, 102, 241, 0.4) 0%, transparent 65%), linear-gradient(135deg, #064e3b 0%, #0f172a 45%, #3b0764 100%);
+  --app-bg:
+    radial-gradient(
+      ellipse at 15% 10%,
+      rgba(34, 197, 94, 0.45) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 90% 90%,
+      rgba(168, 85, 247, 0.55) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(99, 102, 241, 0.4) 0%,
+      transparent 65%
+    ),
+    linear-gradient(135deg, #064e3b 0%, #0f172a 45%, #3b0764 100%);
   --text-primary: #f5f5f7;
   --text-secondary: #a1a1a6;
   --text-muted: #636366;
@@ -178,7 +210,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
 }
 
 .traffic-light.close {
@@ -467,8 +501,14 @@ body {
 }
 
 @keyframes badgePop {
-  0% { transform: scale(0.6); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Chat Pane Panel */
@@ -1048,6 +1088,8 @@ input:checked + .slider:before {
     height: 100dvh;
     align-items: flex-start;
     justify-content: flex-start;
+    border-radius: 0 !important;
+    border: none !important;
     overflow: hidden;
     overscroll-behavior: none;
   }
@@ -1055,8 +1097,8 @@ input:checked + .slider:before {
   .imessage-window {
     height: 100dvh;
     max-height: 100dvh;
-    border-radius: 0;
-    border: none;
+    border-radius: 0 !important;
+    border: none !important;
     overflow: hidden;
     overscroll-behavior: none;
   }
@@ -1111,7 +1153,8 @@ input:checked + .slider:before {
 
 /* Levitating float animation */
 @keyframes auth-float-y {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {

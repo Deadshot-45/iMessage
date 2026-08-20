@@ -17,7 +17,7 @@ export function AccentToggle() {
 
       <DialogContent className="max-w-xs rounded-3xl border border-black/8 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-2xl">
         <DialogHeader className="mb-2">
-          <DialogTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-left">
+          <DialogTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground! text-left">
             Accent Color
           </DialogTitle>
         </DialogHeader>

@@ -134,9 +134,10 @@ const Home = () => {
   };
 
   return (
-    <main className="imessage-container flex items-center justify-center p-3 lg:p-6 w-full h-screen overflow-hidden">
-      <div className="flex w-full h-full max-w-[1560px] gap-3.5 lg:gap-4.5 relative items-stretch">
-        {/* Left Panel: Sidebar */}
+    <main className="imessage-container flex items-center justify-center p-3 lg:p-6 w-full h-screen overflow-hidden select-none">
+      {/* Unified macOS Window (1180px x 840px) */}
+      <div className="imessage-window w-full max-w-295 h-210 max-h-[calc(100vh-32px)] rounded-[24px] overflow-hidden shadow-[0_25px_50px_rgba(0,0,0,0.25)] border border-white/40 dark:border-white/10 flex bg-[#f9f9ff]/85 dark:bg-[#16171d]/85 backdrop-blur-[32px] backdrop-saturate-[190%] relative">
+        {/* Sidebar (340px) */}
         <aside
           className={`h-full transition-all duration-300 ${
             !isMdScreen
@@ -144,14 +145,14 @@ const Home = () => {
                 ? "w-full flex"
                 : "hidden"
               : isSidebarOpen
-                ? "w-[310px] lg:w-[340px] shrink-0 flex"
+                ? "w-85 shrink-0 flex"
                 : "hidden"
-          }`}
+          } bg-black/2 dark:bg-white/2 border-r border-black/8 dark:border-white/8`}
         >
           <Sidebar mutedChats={mutedChats} />
         </aside>
 
-        {/* Center Panel: Chat Screen */}
+        {/* Center Chat Panel (Flex-1) */}
         <section
           className={`h-full transition-all duration-300 ${
             !isMdScreen
@@ -159,7 +160,7 @@ const Home = () => {
                 ? "w-full flex"
                 : "hidden"
               : "flex-1 min-w-0 flex"
-          }`}
+          } bg-white/40 dark:bg-black/20 relative`}
         >
           <ChatPanel
             onBack={() => setActiveChatId(null)}
@@ -170,9 +171,9 @@ const Home = () => {
           />
         </section>
 
-        {/* Right Panel: Details Page (Floating 3rd card on lg: screens) */}
+        {/* Right Details Panel (300px) */}
         {activeChatId && showDetails && isLgScreen && (
-          <aside className="w-[300px] lg:w-[330px] shrink-0 h-full animate-in fade-in zoom-in-95 duration-200">
+          <aside className="w-75 shrink-0 h-full border-l border-black/8 dark:border-white/8 bg-black/2 dark:bg-white/2 backdrop-blur-xl animate-in fade-in duration-200">
             <DetailsPanel
               isMuted={!!mutedChats[activeChatId]}
               onToggleMute={() => toggleMuteChat(activeChatId)}

@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-} from "./ui/dialog";
+import { Dialog, DialogContent } from "./ui/dialog";
 import {
   Search,
   Settings as GeneralIcon,
@@ -27,11 +24,24 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
-  const [activeNav, setActiveNav] = useState<"general" | "appearance" | "notifications" | "messages" | "privacy">("appearance");
+  const [activeNav, setActiveNav] = useState<
+    "general" | "appearance" | "notifications" | "messages" | "privacy"
+  >("general");
   const [searchQuery, setSearchQuery] = useState("");
-  const [mobileView, setMobileView] = useState<"main" | "appearance">("main");
+  const [mobileView, setMobileView] = useState<
+    | "main"
+    | "general"
+    | "appearance"
+    | "notifications"
+    | "sounds"
+    | "messages"
+    | "privacy"
+    | "blocked"
+  >("main");
   const [textSize, setTextSize] = useState(15);
   const [sendReadReceipts, setSendReadReceipts] = useState(true);
+  const [showPreviews, setShowPreviews] = useState(true);
+  const [playSounds, setPlaySounds] = useState(true);
 
   const { theme, setTheme } = useTheme();
   const { accent, setAccent } = useAccent();
@@ -41,13 +51,42 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const displayName = authUser?.fullName || authUser?.username || "Alex Carter";
   const displayEmail = authUser?.email || "sarah.j@example.com";
 
+  // Reset mobile sub-view when modal opens/closes
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setMobileView("main");
+    }
+    onOpenChange(isOpen);
+  };
+
+  const getMobileTitle = () => {
+    switch (mobileView) {
+      case "appearance":
+        return "Appearance";
+      case "notifications":
+        return "Notifications";
+      case "sounds":
+        return "Sounds";
+      case "messages":
+        return "Messages";
+      case "privacy":
+        return "Privacy & Security";
+      case "blocked":
+        return "Blocked Contacts";
+      case "general":
+        return "Account";
+      default:
+        return "Settings";
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton={false}
         className="w-185 sm:max-w-185 md:max-w-185 max-w-[95vw] p-0 overflow-hidden rounded-3xl border border-black/10 dark:border-white/12 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl"
       >
-        {/* Desktop View (Image 2) */}
+        {/* Desktop View */}
         <div className="hidden md:flex h-130 w-full select-none">
           {/* Left Sidebar */}
           <div className="w-56 bg-black/4 dark:bg-white/4 border-r border-black/8 dark:border-white/8 p-4 flex flex-col gap-3 shrink-0">
@@ -159,7 +198,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   </p>
                 </div>
 
-                {/* Accent Color Palette (6 Swatches) */}
+                {/* Accent Color Palette */}
                 <div>
                   <h3 className="text-xs font-bold text-foreground mb-3">
                     Accent Color
@@ -192,7 +231,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   </div>
                 </div>
 
-                {/* Mode (3 Window Mockup Cards: Light, Dark, Auto) */}
+                {/* Mode (Light, Dark, Auto) */}
                 <div>
                   <h3 className="text-xs font-bold text-foreground mb-3">
                     Mode
@@ -321,21 +360,28 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                     <span className="text-xs font-medium text-foreground">
                       Show Message Previews
                     </span>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="accent-[#007aff]"
-                    />
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showPreviews}
+                        onChange={(e) => setShowPreviews(e.target.checked)}
+                      />
+                      <span className="slider"></span>
+                    </label>
                   </div>
+                  <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-foreground">
                       Play Message Sound
                     </span>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className="accent-[#007aff]"
-                    />
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={playSounds}
+                        onChange={(e) => setPlaySounds(e.target.checked)}
+                      />
+                      <span className="slider"></span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -356,12 +402,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                     <span className="text-xs font-medium text-foreground">
                       Send Read Receipts
                     </span>
-                    <input
-                      type="checkbox"
-                      checked={sendReadReceipts}
-                      onChange={(e) => setSendReadReceipts(e.target.checked)}
-                      className="accent-[#007aff]"
-                    />
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={sendReadReceipts}
+                        onChange={(e) => setSendReadReceipts(e.target.checked)}
+                      />
+                      <span className="slider"></span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -438,161 +486,514 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           </div>
         </div>
 
-        {/* Mobile View (Image 1) */}
-        <div className="flex md:hidden flex-col h-140 w-full bg-zinc-50 dark:bg-zinc-900 text-foreground overflow-y-auto">
+        {/* Mobile View */}
+        <div className="flex md:hidden flex-col h-140 w-full bg-zinc-50 dark:bg-zinc-900 text-foreground overflow-y-auto no-scrollbar">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-black/6 dark:border-white/8">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="flex items-center gap-1 text-[#007aff] text-sm font-medium bg-transparent border-0 cursor-pointer"
-            >
-              <ChevronLeft size={18} />
-              <span>Back</span>
-            </button>
-            <h3 className="text-base font-bold text-card-foreground!">
-              Settings
-            </h3>
-            <div className="w-12" />
-          </div>
-
-          {/* User Profile Card */}
-          <div className="p-4">
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl p-3.5 flex items-center justify-between shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="size-12 rounded-full bg-[#007aff]/20 text-[#007aff] font-bold flex items-center justify-center text-base ring-2 ring-[#007aff]/20">
-                  {displayName[0]}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-foreground leading-tight">
-                    {displayName}
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    Apple ID, iCloud, Media & Purchases
-                  </p>
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </div>
-          </div>
-
-          {/* Squircle Settings Menu */}
-          <div className="px-4 pb-6 flex flex-col gap-2">
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl p-1.5 shadow-2xs divide-y divide-black/4 dark:divide-white/4">
-              {/* Appearance */}
-              <div
-                className="flex items-center justify-between p-2.5 cursor-pointer"
-                onClick={() =>
-                  setMobileView(
-                    mobileView === "appearance" ? "main" : "appearance",
-                  )
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div className="size-7 rounded-lg bg-[#007aff] text-white flex items-center justify-center shadow-2xs">
-                    <Palette size={15} />
-                  </div>
-                  <span className="text-xs font-semibold text-card-foreground!">
-                    Appearance
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-muted-foreground text-xs">
-                  <span className="capitalize">{accent}</span>
-                  <ChevronRight size={14} />
-                </div>
-              </div>
-
-              {/* Notifications */}
-              <div className="flex items-center justify-between p-2.5 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="size-7 rounded-lg bg-red-500 text-white flex items-center justify-center shadow-2xs">
-                    <Bell size={15} />
-                  </div>
-                  <span className="text-xs font-semibold text-card-foreground!">
-                    Notifications
-                  </span>
-                </div>
-                <ChevronRight size={14} className="text-muted-foreground" />
-              </div>
-
-              {/* Sounds */}
-              <div className="flex items-center justify-between p-2.5 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="size-7 rounded-lg bg-pink-500 text-white flex items-center justify-center shadow-2xs">
-                    <Volume2 size={15} />
-                  </div>
-                  <span className="text-xs font-semibold text-card-foreground!">
-                    Sounds
-                  </span>
-                </div>
-                <ChevronRight size={14} className="text-muted-foreground" />
-              </div>
-
-              {/* Privacy & Security */}
-              <div className="flex items-center justify-between p-2.5 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="size-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-2xs">
-                    <Shield size={15} />
-                  </div>
-                  <span className="text-xs font-semibold text-card-foreground!">
-                    Privacy & Security
-                  </span>
-                </div>
-                <ChevronRight size={14} className="text-muted-foreground" />
-              </div>
-
-              {/* Blocked Contacts */}
-              <div className="flex items-center justify-between p-2.5 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="size-7 rounded-lg bg-zinc-500 text-white flex items-center justify-center shadow-2xs">
-                    <Ban size={15} />
-                  </div>
-                  <span className="text-xs font-semibold text-card-foreground!">
-                    Blocked Contacts
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-muted-foreground text-xs">
-                  <span>12</span>
-                  <ChevronRight size={14} />
-                </div>
-              </div>
-
-              {/* Send Read Receipts */}
-              <div className="flex items-center justify-between p-2.5">
-                <div className="flex items-center gap-3">
-                  <div className="size-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-2xs">
-                    <Check size={15} />
-                  </div>
-                  <span className="text-xs font-semibold text-card-foreground!">
-                    Send Read Receipts
-                  </span>
-                </div>
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={sendReadReceipts}
-                    onChange={() => setSendReadReceipts(!sendReadReceipts)}
-                  />
-                  <span className="slider"></span>
-                </label>
-              </div>
-            </div>
-
-            {/* Sign Out Action */}
-            <div className="p-2">
+          <div className="flex items-center justify-between p-4 border-b border-black/6 dark:border-white/8 shrink-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0 z-10 no-scrollbar">
+            {mobileView === "main" ? (
               <button
                 type="button"
-                onClick={() => {
-                  onOpenChange(false);
-                  logout();
-                }}
-                className="text-red-500 hover:text-red-600 font-semibold text-xs py-2 w-full text-left bg-transparent border-0 cursor-pointer flex items-center gap-2"
+                onClick={() => onOpenChange(false)}
+                className="text-[#007aff] text-sm font-semibold bg-transparent border-0 cursor-pointer"
               >
-                <LogOut size={14} />
-                <span>Sign Out</span>
+                Done
               </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setMobileView("main")}
+                className="flex items-center gap-0.5 text-[#007aff] text-sm font-medium bg-transparent border-0 cursor-pointer p-0"
+              >
+                <ChevronLeft size={19} />
+                <span>Settings</span>
+              </button>
+            )}
+
+            <h3 className="text-sm font-bold text-foreground">
+              {getMobileTitle()}
+            </h3>
+
+            <div className="w-12 text-right">
+              {mobileView !== "main" && (
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="text-xs font-semibold text-[#007aff] bg-transparent border-0 cursor-pointer"
+                >
+                  Done
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Mobile Main Menu */}
+          {mobileView === "main" && (
+            <div className="flex flex-col flex-1 p-4 gap-4 animate-in fade-in duration-150">
+              {/* User Profile Card */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setMobileView("general")}
+                className="bg-white dark:bg-zinc-800 rounded-2xl p-3.5 flex items-center justify-between shadow-2xs cursor-pointer active:scale-[0.99] transition-transform"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="size-12 rounded-full text-white font-bold flex items-center justify-center text-base shadow-xs"
+                    style={{
+                      backgroundColor: authUser?.avatarColor || "#007aff",
+                    }}
+                  >
+                    {displayName[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground leading-tight">
+                      {displayName}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                      {displayEmail}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-muted-foreground" />
+              </div>
+
+              {/* Settings Menu List */}
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-1.5 shadow-2xs divide-y divide-black/4 dark:divide-white/4">
+                {/* Appearance */}
+                <div
+                  className="flex items-center justify-between p-2.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 rounded-xl transition-colors"
+                  onClick={() => setMobileView("appearance")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-[#007aff] text-white flex items-center justify-center shadow-2xs">
+                      <Palette size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Appearance
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                    <span className="capitalize">{accent}</span>
+                    <ChevronRight size={14} />
+                  </div>
+                </div>
+
+                {/* Notifications */}
+                <div
+                  className="flex items-center justify-between p-2.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 rounded-xl transition-colors"
+                  onClick={() => setMobileView("notifications")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-red-500 text-white flex items-center justify-center shadow-2xs">
+                      <Bell size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Notifications
+                    </span>
+                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground" />
+                </div>
+
+                {/* Sounds */}
+                <div
+                  className="flex items-center justify-between p-2.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 rounded-xl transition-colors"
+                  onClick={() => setMobileView("sounds")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-pink-500 text-white flex items-center justify-center shadow-2xs">
+                      <Volume2 size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Sounds
+                    </span>
+                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground" />
+                </div>
+
+                {/* Messages */}
+                <div
+                  className="flex items-center justify-between p-2.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 rounded-xl transition-colors"
+                  onClick={() => setMobileView("messages")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-2xs">
+                      <MessageSquare size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Messages
+                    </span>
+                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground" />
+                </div>
+
+                {/* Privacy & Security */}
+                <div
+                  className="flex items-center justify-between p-2.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 rounded-xl transition-colors"
+                  onClick={() => setMobileView("privacy")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-indigo-500 text-white flex items-center justify-center shadow-2xs">
+                      <Shield size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Privacy & Security
+                    </span>
+                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground" />
+                </div>
+
+                {/* Blocked Contacts */}
+                <div
+                  className="flex items-center justify-between p-2.5 cursor-pointer active:bg-black/5 dark:active:bg-white/5 rounded-xl transition-colors"
+                  onClick={() => setMobileView("blocked")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-zinc-500 text-white flex items-center justify-center shadow-2xs">
+                      <Ban size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Blocked Contacts
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                    <span>12</span>
+                    <ChevronRight size={14} />
+                  </div>
+                </div>
+
+                {/* Send Read Receipts Quick Toggle */}
+                <div className="flex items-center justify-between p-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="size-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-2xs">
+                      <Check size={15} />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      Send Read Receipts
+                    </span>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={sendReadReceipts}
+                      onChange={() => setSendReadReceipts(!sendReadReceipts)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Sign Out Action */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenChange(false);
+                    logout();
+                  }}
+                  className="text-red-500 hover:text-red-600 font-semibold text-xs py-2 w-full text-left bg-transparent border-0 cursor-pointer flex items-center gap-2"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Appearance Sub-View */}
+          {mobileView === "appearance" && (
+            <div className="p-4 flex flex-col gap-6 animate-in slide-in-from-right-4 duration-200">
+              {/* Accent Color */}
+              <div>
+                <h3 className="text-xs font-bold text-foreground mb-3">
+                  Accent Color
+                </h3>
+                <div className="flex items-center gap-3">
+                  {ACCENTS.slice(0, 6).map((ac) => {
+                    const isSelected = ac.id === accent;
+                    return (
+                      <button
+                        key={ac.id}
+                        type="button"
+                        onClick={() => setAccent(ac.id)}
+                        title={ac.name}
+                        className={`size-8 rounded-full border cursor-pointer transition-transform hover:scale-110 p-0 relative flex items-center justify-center ${
+                          isSelected
+                            ? "ring-2 ring-offset-2 ring-[#007aff] border-white"
+                            : "border-black/10 dark:border-white/10"
+                        }`}
+                        style={{ backgroundColor: ac.colors[0] }}
+                      >
+                        {isSelected && (
+                          <Check size={14} className="text-white drop-shadow" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mode */}
+              <div>
+                <h3 className="text-xs font-bold text-foreground mb-3">Mode</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Light Card */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setTheme("light")}
+                    className="flex flex-col items-center gap-2 cursor-pointer group"
+                  >
+                    <div
+                      className={`w-full aspect-[4/2.6] rounded-xl border p-2 flex flex-col justify-between bg-zinc-100 transition-all ${
+                        theme === "light"
+                          ? "border-[#007aff] ring-2 ring-[#007aff]/20 shadow-md"
+                          : "border-black/10 dark:border-white/10"
+                      }`}
+                    >
+                      <div className="flex gap-1">
+                        <div className="size-1 rounded-full bg-zinc-300" />
+                        <div className="size-1 rounded-full bg-zinc-300" />
+                      </div>
+                      <div className="self-end w-10 h-2.5 rounded-full bg-blue-600 shadow-2xs" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">
+                      Light
+                    </span>
+                  </div>
+
+                  {/* Dark Card */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setTheme("dark")}
+                    className="flex flex-col items-center gap-2 cursor-pointer group"
+                  >
+                    <div
+                      className={`w-full aspect-[4/2.6] rounded-xl border p-2 flex flex-col justify-between bg-zinc-900 transition-all ${
+                        theme === "dark"
+                          ? "border-[#007aff] ring-2 ring-[#007aff]/20 shadow-md"
+                          : "border-black/10 dark:border-white/10"
+                      }`}
+                    >
+                      <div className="flex gap-1">
+                        <div className="size-1 rounded-full bg-zinc-700" />
+                        <div className="size-1 rounded-full bg-zinc-700" />
+                      </div>
+                      <div className="self-end w-10 h-2.5 rounded-full bg-sky-400 shadow-2xs" />
+                    </div>
+                    <span className="text-xs font-medium text-foreground">
+                      Dark
+                    </span>
+                  </div>
+
+                  {/* Auto Card */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setTheme("system")}
+                    className="flex flex-col items-center gap-2 cursor-pointer group"
+                  >
+                    <div
+                      className={`w-full aspect-[4/2.6] rounded-xl border overflow-hidden flex transition-all ${
+                        theme === "system"
+                          ? "border-[#007aff] ring-2 ring-[#007aff]/20 shadow-md"
+                          : "border-black/10 dark:border-white/10"
+                      }`}
+                    >
+                      <div className="w-1/2 h-full bg-zinc-100 p-1 flex flex-col justify-end">
+                        <div className="w-4 h-1.5 rounded-sm bg-zinc-300" />
+                      </div>
+                      <div className="w-1/2 h-full bg-zinc-900 p-1 flex flex-col justify-end items-end">
+                        <div className="w-4 h-1.5 rounded-sm bg-blue-500" />
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-foreground">
+                      Auto
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message Text Size Slider */}
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-2xs">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-xs font-bold text-foreground">
+                    Message Text Size
+                  </h3>
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    {textSize}px
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="12"
+                  max="20"
+                  value={textSize}
+                  onChange={(e) => setTextSize(Number(e.target.value))}
+                  className="w-full accent-[#007aff] cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Notifications Sub-View */}
+          {mobileView === "notifications" && (
+            <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-right-4 duration-200">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">
+                    Show Message Previews
+                  </span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={showPreviews}
+                      onChange={(e) => setShowPreviews(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">
+                    Play Message Sound
+                  </span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={playSounds}
+                      onChange={(e) => setPlaySounds(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Sounds Sub-View */}
+          {mobileView === "sounds" && (
+            <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-right-4 duration-200">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">
+                    Keyboard Clicks
+                  </span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={playSounds}
+                      onChange={(e) => setPlaySounds(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">
+                    Sent Message Sound
+                  </span>
+                  <label className="switch">
+                    <input type="checkbox" defaultChecked />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Messages Sub-View */}
+          {mobileView === "messages" && (
+            <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-right-4 duration-200">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">
+                    Send Read Receipts
+                  </span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={sendReadReceipts}
+                      onChange={(e) => setSendReadReceipts(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Privacy & Security Sub-View */}
+          {mobileView === "privacy" && (
+            <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-right-4 duration-200">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xs">
+                <div
+                  className="flex justify-between items-center cursor-pointer"
+                  onClick={() => setMobileView("blocked")}
+                >
+                  <span className="text-xs font-medium text-foreground">
+                    Blocked Contacts
+                  </span>
+                  <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                    <span>12</span>
+                    <ChevronRight size={14} />
+                  </div>
+                </div>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">
+                    End-to-End Encryption
+                  </span>
+                  <span className="text-xs text-emerald-500 font-semibold">
+                    Enabled
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Blocked Contacts Sub-View */}
+          {mobileView === "blocked" && (
+            <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-right-4 duration-200">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-2xs">
+                <p className="text-xs text-muted-foreground mb-3">
+                  You will not receive calls, messages, or FaceTime from people
+                  on the block list.
+                </p>
+                <div className="py-2 text-xs font-medium text-foreground">
+                  12 contacts currently blocked
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Account / General Sub-View */}
+          {mobileView === "general" && (
+            <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-right-4 duration-200">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 flex flex-col gap-3.5 shadow-2xs">
+                <div className="flex justify-between items-center gap-4">
+                  <span className="text-xs font-semibold text-foreground shrink-0">
+                    User Name
+                  </span>
+                  <span className="text-xs text-muted-foreground font-medium truncate max-w-[200px] text-right">
+                    {displayName}
+                  </span>
+                </div>
+                <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                <div className="flex justify-between items-center gap-4">
+                  <span className="text-xs font-semibold text-foreground shrink-0">
+                    Account Email
+                  </span>
+                  <span
+                    className="text-xs text-muted-foreground font-medium truncate max-w-[200px] text-right"
+                    title={displayEmail}
+                  >
+                    {displayEmail}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
