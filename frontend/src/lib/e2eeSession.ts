@@ -75,7 +75,7 @@ export async function initializeUserE2EE(userId: string): Promise<void> {
       await saveIdentityKeys(userId, localKeys);
 
       // 5. Register public key bundle with Backend
-      await axiosInstance.post("/api/e2ee/keys/register", {
+      await axiosInstance.post("/e2ee/keys/register", {
         identityKey: identityPubBase64,
         signedPreKey: {
           keyId: 1,
@@ -87,7 +87,7 @@ export async function initializeUserE2EE(userId: string): Promise<void> {
     }
 
     // Check if OPK replenishment is needed
-    const statusRes = await axiosInstance.get("/api/e2ee/keys/status");
+    const statusRes = await axiosInstance.get("/e2ee/keys/status");
     if (statusRes.data?.data?.requiresReplenishment) {
       const replenishList: { keyId: number; publicKey: string }[] = [];
       const baseId = Date.now();
@@ -100,7 +100,7 @@ export async function initializeUserE2EE(userId: string): Promise<void> {
         await savePreKey(keyId, { keyId, publicKey: opkPubBase64, privateJWK: opkPrivJWK });
         replenishList.push({ keyId, publicKey: opkPubBase64 });
       }
-      await axiosInstance.post("/api/e2ee/keys/replenish", { oneTimePreKeys: replenishList });
+      await axiosInstance.post("/e2ee/keys/replenish", { oneTimePreKeys: replenishList });
     }
   } catch (err) {
     console.error("Failed to initialize user E2EE keys:", err);
@@ -121,7 +121,7 @@ export async function getOrCreateSession(
   }
 
   // Fetch recipient prekey bundle from server
-  const res = await axiosInstance.get(`/api/e2ee/prekeys/${recipientUserId}`);
+  const res = await axiosInstance.get(`/e2ee/prekeys/${recipientUserId}`);
   const bundle = res.data?.data;
   if (!bundle || !bundle.identityKey || !bundle.signedPreKey) {
     throw new Error("Recipient does not have a registered E2EE prekey bundle");
@@ -284,7 +284,7 @@ export async function decryptIncomingMessage(
       const mySignedPreKeyPriv = await importPrivateKey(localKeys.signedPreKeyPrivJWK);
 
       // Fetch sender identity key
-      const senderBundleRes = await axiosInstance.get(`/api/e2ee/prekeys/${senderId}`);
+      const senderBundleRes = await axiosInstance.get(`/e2ee/prekeys/${senderId}`);
       const senderIdentityPub = await importPublicKey(senderBundleRes.data?.data?.identityKey);
       const ephemeralPub = await importPublicKey(messageDoc.x3dhHeader.ephemeralKey);
 
