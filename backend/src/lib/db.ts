@@ -16,6 +16,19 @@ export const connection = async () => {
         res.connection.name,
         res.connection.port,
       );
+
+      // Safely drop deprecated legacy indexes like clerkId_1 on the users collection
+      try {
+        const usersCollection = res.connection.collection("users");
+        const indexes = await usersCollection.indexes();
+        const hasClerkIndex = indexes.some((idx) => idx.name === "clerkId_1");
+        if (hasClerkIndex) {
+          await usersCollection.dropIndex("clerkId_1");
+          console.log("Successfully dropped legacy index: clerkId_1 from users collection");
+        }
+      } catch (idxErr) {
+        console.warn("Index check/cleanup notice:", idxErr);
+      }
     }
   } catch (error) {
     console.log("Database connection failed", error);

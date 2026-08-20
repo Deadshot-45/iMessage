@@ -177,7 +177,7 @@ const getMessages = async (req: Request, res: Response) => {
       ],
     })
       .sort({ createdAt: 1 })
-      .select("-clerkId -password -updatedAt -__v");
+      .select("-password -updatedAt -__v");
 
     return res.status(200).json({
       success: true,
