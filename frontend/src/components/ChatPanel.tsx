@@ -534,7 +534,7 @@ export function ChatPanel({
 
       {/* Chat Messages Timeline */}
       <div
-        className="flex-1 overflow-y-auto px-6 pt-18 pb-28 flex flex-col gap-3.5"
+        className="flex-1 overflow-y-auto px-6 pt-18 pb-28 flex flex-col gap-3.5 no-scrollbar"
         onClick={() => markMessagesAsRead(activeChat.id)}
       >
         {activeChat.messages.length === 0 ? (
@@ -547,12 +547,12 @@ export function ChatPanel({
           <>
             {/* Timestamp Badge */}
             <div className="text-center my-2">
-              <span className="text-[11px] text-muted-foreground bg-black/5 dark:bg-white/8 px-3 py-1 rounded-full backdrop-blur-md">
+              <span className="text-[11px] text-muted-foreground bg-accent px-2 py-1 rounded-md">
                 Today 8:30 AM
               </span>
             </div>
 
-            {activeChat.messages.map((msg: Message, index) => {
+            {activeChat.messages.map((msg: Message, index:Number) => {
               const isSent = msg.sender === "me";
               const showStatus =
                 isSent && index === activeChat.messages.length - 1;

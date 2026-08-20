@@ -113,7 +113,24 @@ export function Sidebar({
 
     const formatted = list.map((item: any) => {
       const isSelected = String(item._id) === String(activeChatId);
-      const chatMessages = isSelected ? messages : [];
+      const chatMessages = isSelected
+        ? messages.map((m: any) => ({
+            id: m._id,
+            text: m.message || m.text || "",
+            sender: (String(m.senderId) === String(authUser?._id)
+              ? "me"
+              : "them") as "me" | "them",
+            timestamp: m.createdAt
+              ? new Date(m.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "",
+            mediaType: m.mediaType,
+            mediaUrl: m.mediaUrl,
+            status: m.status,
+          }))
+        : [];
 
       const lastMsgText = item.lastMessage?.message || "";
       const lastMsgTime = item.lastMessage?.createdAt
@@ -131,7 +148,10 @@ export function Sidebar({
               {
                 id: "last",
                 text: lastMsgText,
-                sender: "them" as "me" | "them",
+                sender: (String(item.lastMessage?.senderId) ===
+                String(authUser?._id)
+                  ? "me"
+                  : "them") as "me" | "them",
                 timestamp: lastMsgTime,
                 mediaType: lastMsgMediaType,
                 mediaUrl: lastMsgMediaUrl,

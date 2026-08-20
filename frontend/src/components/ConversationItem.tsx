@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Bell, ImageIcon, Video } from "lucide-react";
+import { Bell, ImageIcon, Video, Mic } from "lucide-react";
 import type { Conversation } from "../types";
 
 interface ConversationItemProps {
@@ -19,14 +19,33 @@ export const ConversationItem = memo(function ConversationItem({
   isMessageDisable = true,
   onClick,
 }: ConversationItemProps) {
-  const lastMessage = conv.messages[conv.messages.length - 1];
-  const initials = conv.name
+  const lastMessage =
+    conv.messages && conv.messages.length > 0
+      ? conv.messages[conv.messages.length - 1]
+      : null;
+
+  const initials = (conv.name || "U")
     .split(" ")
     .map((n) => n[0])
     .join("");
 
   const unreadCount = conv.unreadCount || 0;
   const showUnreadBadge = unreadCount > 0 && !isActive;
+
+  const lastMsgText =
+    lastMessage?.text || (lastMessage as any)?.message || "";
+  const lastMsgMediaType = lastMessage?.mediaType;
+  const isSentByMe = lastMessage?.sender === "me";
+  const prefix = isSentByMe ? "You: " : "";
+
+  const timestamp =
+    lastMessage?.timestamp ||
+    ((lastMessage as any)?.createdAt
+      ? new Date((lastMessage as any)?.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "");
 
   return (
     <div
@@ -43,9 +62,7 @@ export const ConversationItem = memo(function ConversationItem({
       <div className="conv-details">
         <div className="conv-meta">
           <h3 className="conv-name">{conv.name}</h3>
-          <span className="conv-time">
-            {lastMessage ? lastMessage.timestamp : ""}
-          </span>
+          <span className="conv-time">{timestamp}</span>
         </div>
         <div className="conv-last-msg-container">
           <div className="flex items-center gap-1 min-w-0 flex-1">
@@ -59,8 +76,10 @@ export const ConversationItem = memo(function ConversationItem({
                   </span>
                 ) : lastMessage ? (
                   (() => {
-                    const prefix = lastMessage.sender === "me" ? "You: " : "";
-                    if (lastMessage.mediaType === "image") {
+                    if (
+                      lastMsgMediaType === "image" ||
+                      lastMsgMediaType === "gif"
+                    ) {
                       return (
                         <span className="flex items-center gap-1">
                           {prefix && <span>{prefix}</span>}
@@ -68,20 +87,36 @@ export const ConversationItem = memo(function ConversationItem({
                             size={12}
                             className="inline shrink-0 opacity-70"
                           />
-                          <span>Photo</span>
+                          <span>{lastMsgText ? lastMsgText : "Photo"}</span>
                         </span>
                       );
                     }
-                    if (lastMessage.mediaType === "video") {
+                    if (lastMsgMediaType === "video") {
                       return (
                         <span className="flex items-center gap-1">
                           {prefix && <span>{prefix}</span>}
-                          <Video size={12} className="inline shrink-0 opacity-70" />
-                          <span>Video</span>
+                          <Video
+                            size={12}
+                            className="inline shrink-0 opacity-70"
+                          />
+                          <span>{lastMsgText ? lastMsgText : "Video"}</span>
                         </span>
                       );
                     }
-                    return `${prefix}${lastMessage.text}`;
+                    if (lastMsgMediaType === "audio") {
+                      return (
+                        <span className="flex items-center gap-1">
+                          {prefix && <span>{prefix}</span>}
+                          <Mic size={12} className="inline shrink-0 opacity-70" />
+                          <span>
+                            {lastMsgText ? lastMsgText : "Voice message"}
+                          </span>
+                        </span>
+                      );
+                    }
+                    return lastMsgText
+                      ? `${prefix}${lastMsgText}`
+                      : "No messages yet";
                   })()
                 ) : (
                   "No messages yet"
@@ -90,14 +125,20 @@ export const ConversationItem = memo(function ConversationItem({
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0 ml-1">
-            {lastMessage?.sender === "me" && !isTyping && (
+            {isSentByMe && !isTyping && (
               <span className="text-[11px] opacity-70 leading-none select-none">
-                {lastMessage.status === "seen" ? (
-                  <span className="text-sky-500 font-bold" style={{ letterSpacing: "-1.5px" }}>
+                {lastMessage?.status === "seen" ? (
+                  <span
+                    className="text-sky-500 font-bold"
+                    style={{ letterSpacing: "-1.5px" }}
+                  >
                     ✓✓
                   </span>
-                ) : lastMessage.status === "delivered" ? (
-                  <span className="text-muted-foreground font-semibold" style={{ letterSpacing: "-1.5px" }}>
+                ) : lastMessage?.status === "delivered" ? (
+                  <span
+                    className="text-muted-foreground font-semibold"
+                    style={{ letterSpacing: "-1.5px" }}
+                  >
                     ✓✓
                   </span>
                 ) : (
@@ -124,4 +165,3 @@ export const ConversationItem = memo(function ConversationItem({
     </div>
   );
 });
-
